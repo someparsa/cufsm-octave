@@ -1,1 +1,2 @@
 *.m linguist-language=Octave
+*.html linguist-vendored
