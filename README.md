@@ -40,17 +40,21 @@ This repository is a derivative adaptation of the original CUFSM project. It doe
 
 This version is intended for users who want to run selected CUFSM-style analyses in Octave or in script-based workflows. Future updates from the original CUFSM project may be reviewed and selectively incorporated when compatible with the CLI-oriented direction of this repository.
 
-## Acknowledgement
+## Acknowledgement and Citation
 
-This work is based on the original CUFSM codebase and acknowledges the original CUFSM authors and contributors. CUFSM has made a significant contribution to thin-walled member stability analysis, cold-formed steel research, and structural engineering education.
+This repository is an Octave-oriented adaptation of the original CUFSM codebase. CUFSM, the Constrained and Unconstrained Finite Strip Method software, was developed for elastic buckling analysis of thin-walled member cross-sections and has made a significant contribution to thin-walled member stability analysis, cold-formed steel research, structural stability studies, and engineering education.
 
-The original CUFSM software is distributed under the MIT License. This repository retains the original licence notices and provides additional modifications for Octave-oriented and command-line use.
+This work acknowledges the original CUFSM authors and contributors. The original CUFSM project remains the primary reference for the underlying finite strip method implementation, the computational approach, and the software's historical development.
+
+The original CUFSM software is distributed under the MIT License. This repository retains the original licence notices and documents additional modifications made for Octave-oriented and command-line workflows.
+
+If you use this adapted version, please cite this repository where appropriate and also cite the original CUFSM software and related academic papers. Citation information is provided in the `CITATION.cff` file.
 
 ## Note on Language Classification
 
 Although GitHub may classify this repository as MATLAB due to the use of `.m` source files, this project is developed as an Octave-oriented adaptation. GNU Octave uses MATLAB-compatible `.m` files, so the repository language statistics may not fully reflect the intended execution environment.
 
-# CUFSM
+# CUFSM (Copy from the Original Rep)
 
 This is the GitHub repository for the cross-section elastic buckling analysis tool CUFSM, written in MATLAB.
 
