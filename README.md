@@ -46,6 +46,10 @@ This work is based on the original CUFSM codebase and acknowledges the original 
 
 The original CUFSM software is distributed under the MIT License. This repository retains the original licence notices and provides additional modifications for Octave-oriented and command-line use.
 
+## Note on Language Classification
+
+Although GitHub may classify this repository as MATLAB due to the use of `.m` source files, this project is developed as an Octave-oriented adaptation. GNU Octave uses MATLAB-compatible `.m` files, so the repository language statistics may not fully reflect the intended execution environment.
+
 # CUFSM
 
 This is the GitHub repository for the cross-section elastic buckling analysis tool CUFSM, written in MATLAB.
