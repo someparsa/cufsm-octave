@@ -203,7 +203,7 @@ elseif strcmp(section,'open')
     
     for j = 1:nele
         i = 1;
-        while (any(w(:,1)==ends(i,1))&any(w(:,1)==ends(i,2)))|(~(any(w(:,1)==ends(i,1)))&(~any(w(:,1)==ends(i,2))))
+        while (any(w(:,1)==ends(i,1)) && any(w(:,1)==ends(i,2))) || (~any(w(:,1)==ends(i,1)) && ~any(w(:,1)==ends(i,2)))
             i = i+1;
         end
         sn = ends(i,1); fn = ends(i,2);
@@ -236,7 +236,7 @@ elseif strcmp(section,'open')
     % compute the unit warping
     for j = 1:nele
         i = 1;
-        while (any(wo(:,1)==ends(i,1))&any(wo(:,1)==ends(i,2)))|(~(any(wo(:,1)==ends(i,1)))&(~any(wo(:,1)==ends(i,2))))
+        while (any(wo(:,1)==ends(i,1)) && any(wo(:,1)==ends(i,2))) || (~any(wo(:,1)==ends(i,1)) && ~any(wo(:,1)==ends(i,2)))
             i = i+1;
         end
         sn = ends(i,1); fn = ends(i,2);
@@ -302,7 +302,7 @@ elseif strcmp(section,'arbitrary')
     
     for j = 1:nele
         i = 1;
-        while (any(w(:,1)==ends(i,1))&any(w(:,1)==ends(i,2)))|(~(any(w(:,1)==ends(i,1)))&(~any(w(:,1)==ends(i,2))))
+        while (any(w(:,1)==ends(i,1)) && any(w(:,1)==ends(i,2))) || (~any(w(:,1)==ends(i,1)) && ~any(w(:,1)==ends(i,2)))
                 i = i+1;
                 if i>nele %brute force catch to continue calculation for multi part
                     i=nele;
@@ -339,7 +339,7 @@ elseif strcmp(section,'arbitrary')
     % compute the unit warping
     for j = 1:nele
         i = 1;
-        while (any(wo(:,1)==ends(i,1))&any(wo(:,1)==ends(i,2)))|(~(any(wo(:,1)==ends(i,1)))&(~any(wo(:,1)==ends(i,2))))
+        while (any(wo(:,1)==ends(i,1)) && any(wo(:,1)==ends(i,2))) || (~any(wo(:,1)==ends(i,1)) && ~any(wo(:,1)==ends(i,2)))
                 i = i+1;
                 if i>nele %brute force catch to continue calculation for multi part
                     i=nele;

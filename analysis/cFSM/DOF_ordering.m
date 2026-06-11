@@ -6,7 +6,7 @@ function [DOFperm]=DOF_ordering(node_prop)
 %input/output data
 %   node_prop - array of [original node nr, new node nr, nr of adj elems, node type]
 %   DOFperm - permutation matrix, so that 
-%            (orig-displ-vect) = (DOFperm) × (new-displ-vector)
+%            (orig-displ-vect) = (DOFperm) Ã— (new-displ-vector)
 %   
 %notes:
 % (1)  node types: 1-corner, 2-edge, 3-sub
@@ -63,7 +63,7 @@ end
 ic=0;
 is=0;
 for i=1:nno
-    if (node_prop(i,4)==1) | (node_prop(i,4)==2) %corner or edge node
+    if (node_prop(i,4)==1) || (node_prop(i,4)==2) %corner or edge node
         ic=ic+1;
         DOFperm((2*i),ic)=1;
     end
@@ -96,7 +96,7 @@ end
 ic=0;
 is=0;
 for i=1:nno
-    if (node_prop(i,4)==1) | (node_prop(i,4)==2) %corner or edge node
+    if (node_prop(i,4)==1) || (node_prop(i,4)==2) %corner or edge node
         ic=ic+1;
         DOFperm((2*nno+2*i),(3*nmno+ic))=1;
     end

@@ -14,7 +14,7 @@ function [elprop,m_node,m_elem,node_prop,nmno,ncno,nsno,ndm,nlm,DOFperm]=base_pr
 %   ngm,ndm,nlm,nom - number of G,D,L,O modes, respectively
 %   nmno,ncno,nsno - number of main nodes, corner nodes and sub-nodes, respectively
 %   DOFperm - permutation matrix, so that 
-%            (orig-displ-vect) = (DOFperm) × (new-displ-vector)
+%            (orig-displ-vect) = (DOFperm) * (new-displ-vector)
 %
 % S. Adany, Aug 28, 2006
 % B. Schafer, Aug 29, 2006

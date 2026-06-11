@@ -32,7 +32,7 @@ for i=1:nnode
     mel=0;
     els=[];
     for j=1:nelem
-        if (elem(j,2)==i) | (elem(j,3)==i)
+        if (elem(j,2)==i) || (elem(j,3)==i)
             mel=mel+1;
             els(mel)=j; %zli: element no. containing this node
         end
@@ -71,7 +71,7 @@ for i=1:nnode
     if node_prop(i,3)==0
         k=0;
         for j=1:nelem
-            if (m_el(j,2)==i) | (m_el(j,3)==i)
+            if (m_el(j,2)==i) || (m_el(j,3)==i)
                 k=k+1;
                 els(k)=j;
             end
@@ -97,7 +97,7 @@ end
 nmel=0; %nr of meta-elems
 m_elem=[];
 for i=1:nelem
-    if (m_el(i,2)~=0) & (m_el(i,3)~=0)
+    if (m_el(i,2)~=0) && (m_el(i,3)~=0)
         nmel=nmel+1;
         m_elem(nmel,:)=m_el(i,:);
         m_elem(nmel,1)=nmel;%

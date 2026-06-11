@@ -68,10 +68,6 @@ function [curve,shapes]=stripmain(prop,node,elem,lengths,springs,constraints,GBT
 % \analysis\cFSM\mode_select.m : selection of modes for constraint matrix R
 
 
-%GUI WAIT BAR FOR FINITE STRIP ANALYSIS
-wait_message=waitbar(0,'Performing Finite Strip Analysis','position',[150 300 384 68],...
-    'CreateCancelBtn',@closeWaitBar);
-setappdata(wait_message,'canceling',0)
 %MATRIX SIZES
 nnodes = length(node(:,1));
 nelems = length(elem(:,1));
@@ -325,7 +321,8 @@ while l<nlengths
 	end
     N=max(min(2*neigs,length(Kff(1,:))),1);
     %SOLVE THE EIGENVALUE PROBLEM    %
-    [modes,lf]=eigs(Kff,(Kgff+Kgff')/2,N,'SM','Display',0);
+    eigs_options.disp=0;
+    [modes,lf]=eigs(Kff,(Kgff+Kgff')/2,N,'SM',eigs_options);
     
     %%   %eigs seems now much stable than before
     %    %Determine which solver to use
@@ -402,26 +399,7 @@ while l<nlengths
     shapes{l}=mode;
     %
     %
-    %WAITBAR MESSAGE
-      %info=['Length ',num2str(lengths(l)),' done.'];
-	  if ishandle(wait_message)
-		  if getappdata(wait_message,'canceling')
-			  break
-		  end
-		  waitbar(l/nlengths,wait_message,sprintf('Performing Finite Strip Analysis: %d/%d done.',l,nlengths));
-	  else
-		  break
-	  end
-    %
 end
 %THAT ENDS THE LOOP OVER ALL THE LENGTHS
 %--------------------------------------------------------------------------
-if ishandle(wait_message)
-	delete(wait_message);
-end
-end
-
-function closeWaitBar(varargin)
-setappdata(gcbf,'canceling',1);
-delete(gcbf);
 end
