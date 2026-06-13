@@ -1,0 +1,119 @@
+cff-version: 1.2.0
+
+message: >
+  If you use CUFSM Octave CLI, please cite this software using the citation
+  information below. Because this project is an Octave-compatible,
+  command-line-oriented adaptation of CUFSM, users should also cite the original
+  CUFSM software, repository, and relevant finite strip method literature listed
+  in the references.
+
+title: "CUFSM Octave CLI"
+version: "1.5.66"
+doi: "10.5281/zenodo.20635623"
+date-released: 2026-06-11
+
+authors:
+  - family-names: Yazdi
+    given-names: Parsa
+    affiliation: "University of Waikato"
+
+url: "https://github.com/someparsa/cufsm-octave"
+repository-code: "https://github.com/someparsa/cufsm-octave"
+license: MIT
+
+abstract: >
+  CUFSM Octave CLI is a GNU Octave-compatible, command-line-oriented adaptation
+  of CUFSM for elastic buckling analysis of thin-walled member cross-sections.
+  The project adapts CUFSM numerical routines for headless execution with
+  octave-cli, enabling reproducible signature-curve analysis without relying on
+  the MATLAB graphical interface or plotting system.
+
+keywords:
+  - cold-formed steel
+  - finite strip method
+  - buckling analysis
+  - structural engineering
+  - constrained finite strip method
+  - unconstrained finite strip method
+  - GNU Octave
+  - command-line interface
+  - MATLAB
+  - open-source software
+
+references:
+  - type: software
+    title: "CUFSM"
+    authors:
+      - family-names: Schafer
+        given-names: Benjamin W.
+        orcid: "https://orcid.org/0000-0002-5375-3511"
+      - family-names: Ádány
+        given-names: Sandor
+      - family-names: Li
+        given-names: Zhanjie
+      - family-names: Jin
+        given-names: Sheng
+    version: "5.66"
+    doi: "10.5281/zenodo.17771486"
+    url: "https://github.com/thinwalled/cufsm-git"
+    repository-code: "https://github.com/thinwalled/cufsm-git"
+
+  - type: software
+    title: "CUFSM GitHub Repository"
+    authors:
+      - family-names: Schafer
+        given-names: Benjamin W.
+        orcid: "https://orcid.org/0000-0002-5375-3511"
+      - family-names: Ádány
+        given-names: Sandor
+      - family-names: Li
+        given-names: Zhanjie
+      - family-names: Jin
+        given-names: Sheng
+    url: "https://github.com/thinwalled/cufsm-git"
+    repository-code: "https://github.com/thinwalled/cufsm-git"
+
+  - type: article
+    authors:
+      - family-names: Schafer
+        given-names: Benjamin W.
+      - family-names: Li
+        given-names: Zhanjie
+    title: >
+      Buckling analysis of cold-formed steel members with general boundary
+      conditions using CUFSM: conventional and constrained finite strip methods
+    journal: "Proceedings of the 20th International Specialty Conference on Cold-Formed Steel Structures"
+    year: 2010
+    month: 11
+    pages: "17-32"
+    url: "https://scholarsmine.mst.edu/isccss/20iccfss/20iccfss-session1/2/"
+
+  - type: article
+    authors:
+      - family-names: Schafer
+        given-names: Benjamin W.
+      - family-names: Ádány
+        given-names: Sandor
+    title: >
+      Buckling analysis of cold-formed steel members using CUFSM:
+      conventional and constrained finite strip methods
+    journal: "Proceedings of the Eighteenth International Specialty Conference on Cold-Formed Steel Structures"
+    year: 2006
+    month: 10
+    pages: "39-54"
+    url: "https://scholarsmine.mst.edu/isccss/18iccfss/18iccfss-session1/2/"
+
+  - type: article
+    authors:
+      - family-names: Jin
+        given-names: Sheng
+      - family-names: Ádány
+        given-names: Sandor
+      - family-names: Schafer
+        given-names: Benjamin W.
+    title: >
+      Constrained Finite Strip Method: kinematic- and force-based approaches
+    journal: "Proceedings of the Annual Stability Conference, Structural Stability Research Council"
+    year: 2024
+    month: 4
+    url: "https://aisc.s3-us-east-2.amazonaws.com/SSRC/2024/Jin_et_al_SSRC_2024.pdf"
