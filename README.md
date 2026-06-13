@@ -49,7 +49,7 @@ You will need:
 
 On Windows, you can either install GNU Octave directly or use Windows Subsystem for Linux.
 
-#### Option 1: Install GNU Octave directly on Windows
+#### Option 1: GNU Octave Installer (GUI)
 
 Download and install GNU Octave from:
 
@@ -63,7 +63,7 @@ octave-cli --version
 
 If the command is not recognised, restart the terminal or add the Octave installation folder to your system PATH.
 
-#### Option 2: Use Windows Subsystem for Linux
+#### Option 2: Windows Subsystem for Linux
 
 If you use Ubuntu or Debian through WSL, install Octave inside WSL:
 
@@ -78,7 +78,7 @@ Then check the installation:
 octave-cli --version
 ```
 
-### Option 3: Windows PowerShell
+#### Option 3: Windows PowerShell
 
 On Windows, GNU Octave can be installed directly from PowerShell using `winget`, the Windows Package Manager.
 
