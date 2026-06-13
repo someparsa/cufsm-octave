@@ -78,7 +78,7 @@ Then check the installation:
 octave-cli --version
 ```
 
-### Windows PowerShell
+### Option 3: Windows PowerShell
 
 On Windows, GNU Octave can be installed directly from PowerShell using `winget`, the Windows Package Manager.
 
