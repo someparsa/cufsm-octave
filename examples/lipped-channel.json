@@ -1,0 +1,238 @@
+{
+  "$schema": "../schema/input-v1.schema.json",
+  "version": "1.0",
+  "metadata": {
+    "name": "lipped-channel-compression-example",
+    "description": "Lipped channel under generated uniform compression, matching the final loading state of cufsm-octave-example.m."
+  },
+  "units": {
+    "system": "kip_in"
+  },
+  "model": {
+    "materials": [
+      {
+        "id": 100,
+        "Ex": 29500.0,
+        "Ey": 29500.0,
+        "nu_x": 0.3,
+        "nu_y": 0.3,
+        "G": 11346.15
+      }
+    ],
+    "nodes": [
+      {
+        "id": 1,
+        "x": 5.0,
+        "z": 1.0,
+        "dof_x": 1,
+        "dof_z": 1,
+        "dof_y": 1,
+        "dof_rotation": 1,
+        "stress": 0.0
+      },
+      {
+        "id": 2,
+        "x": 5.0,
+        "z": 0.0,
+        "dof_x": 1,
+        "dof_z": 1,
+        "dof_y": 1,
+        "dof_rotation": 1,
+        "stress": 0.0
+      },
+      {
+        "id": 3,
+        "x": 2.5,
+        "z": 0.0,
+        "dof_x": 1,
+        "dof_z": 1,
+        "dof_y": 1,
+        "dof_rotation": 1,
+        "stress": 0.0
+      },
+      {
+        "id": 4,
+        "x": 0.0,
+        "z": 0.0,
+        "dof_x": 1,
+        "dof_z": 1,
+        "dof_y": 1,
+        "dof_rotation": 1,
+        "stress": 0.0
+      },
+      {
+        "id": 5,
+        "x": 0.0,
+        "z": 3.0,
+        "dof_x": 1,
+        "dof_z": 1,
+        "dof_y": 1,
+        "dof_rotation": 1,
+        "stress": 0.0
+      },
+      {
+        "id": 6,
+        "x": 0.0,
+        "z": 6.0,
+        "dof_x": 1,
+        "dof_z": 1,
+        "dof_y": 1,
+        "dof_rotation": 1,
+        "stress": 0.0
+      },
+      {
+        "id": 7,
+        "x": 0.0,
+        "z": 9.0,
+        "dof_x": 1,
+        "dof_z": 1,
+        "dof_y": 1,
+        "dof_rotation": 1,
+        "stress": 0.0
+      },
+      {
+        "id": 8,
+        "x": 2.5,
+        "z": 9.0,
+        "dof_x": 1,
+        "dof_z": 1,
+        "dof_y": 1,
+        "dof_rotation": 1,
+        "stress": 0.0
+      },
+      {
+        "id": 9,
+        "x": 5.0,
+        "z": 9.0,
+        "dof_x": 1,
+        "dof_z": 1,
+        "dof_y": 1,
+        "dof_rotation": 1,
+        "stress": 0.0
+      },
+      {
+        "id": 10,
+        "x": 5.0,
+        "z": 8.0,
+        "dof_x": 1,
+        "dof_z": 1,
+        "dof_y": 1,
+        "dof_rotation": 1,
+        "stress": 0.0
+      }
+    ],
+    "elements": [
+      {
+        "id": 1,
+        "node_i": 1,
+        "node_j": 2,
+        "thickness": 0.1,
+        "material_id": 100
+      },
+      {
+        "id": 2,
+        "node_i": 2,
+        "node_j": 3,
+        "thickness": 0.1,
+        "material_id": 100
+      },
+      {
+        "id": 3,
+        "node_i": 3,
+        "node_j": 4,
+        "thickness": 0.1,
+        "material_id": 100
+      },
+      {
+        "id": 4,
+        "node_i": 4,
+        "node_j": 5,
+        "thickness": 0.1,
+        "material_id": 100
+      },
+      {
+        "id": 5,
+        "node_i": 5,
+        "node_j": 6,
+        "thickness": 0.1,
+        "material_id": 100
+      },
+      {
+        "id": 6,
+        "node_i": 6,
+        "node_j": 7,
+        "thickness": 0.1,
+        "material_id": 100
+      },
+      {
+        "id": 7,
+        "node_i": 7,
+        "node_j": 8,
+        "thickness": 0.1,
+        "material_id": 100
+      },
+      {
+        "id": 8,
+        "node_i": 8,
+        "node_j": 9,
+        "thickness": 0.1,
+        "material_id": 100
+      },
+      {
+        "id": 9,
+        "node_i": 9,
+        "node_j": 10,
+        "thickness": 0.1,
+        "material_id": 100
+      }
+    ],
+    "springs": [],
+    "constraints": []
+  },
+  "loading": {
+    "type": "generated_from_actions",
+    "fy": 50.0,
+    "unsymmetric": false,
+    "actions": {
+      "P_factor": 1.0,
+      "Mxx_factor": 0.0,
+      "Mzz_factor": 0.0,
+      "M11_factor": 0.0,
+      "M22_factor": 0.0
+    }
+  },
+  "analysis": {
+    "type": "signature_curve",
+    "boundary_condition": "S-S",
+    "lengths": {
+      "type": "logspace",
+      "min": 1.0,
+      "max": 1000.0,
+      "count": 100
+    },
+    "longitudinal_terms": {
+      "default": [
+        1
+      ]
+    },
+    "eigenmodes": 10,
+    "vectorized": false,
+    "mesh_refinement": {
+      "doubler": true
+    },
+    "cfsm": {
+      "ospace": 1,
+      "couple": 1,
+      "orth": 2,
+      "norm": 1,
+      "local": [],
+      "distortional": [],
+      "global": [],
+      "other": []
+    }
+  },
+  "output": {
+    "path": "cufsm-results.json",
+    "text_path": "cufsm-results-from-json.txt"
+  }
+}

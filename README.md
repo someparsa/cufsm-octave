@@ -178,6 +178,74 @@ cufsm-results.txt
 
 The report includes the model data, analysis settings, eigenvalue results, signature-curve results, and critical points.
 
+
+## Running A JSON Input
+
+The repository also includes a JSON-driven runner intended for repeatable CLI, automation, and AI-agent workflows:
+
+```bash
+octave-cli --quiet cufsm_json.m examples/lipped-channel.json
+```
+
+This reads the named-field JSON model, converts it to the CUFSM matrix inputs, runs the same headless signature-curve analysis, and writes the configured result files:
+
+```text
+cufsm-results.json
+cufsm-results-from-json.txt
+```
+
+The JSON input maps directly to the existing CUFSM variables:
+
+| JSON field | CUFSM variable | Meaning |
+| --- | --- | --- |
+| `model.materials` | `prop` | Material rows: `material_id`, `Ex`, `Ey`, `nu_x`, `nu_y`, `G` |
+| `model.nodes` | `node` | Node rows: `node_id`, `x`, `z`, restraints, stress |
+| `model.elements` | `elem` | Element rows: `element_id`, end nodes, thickness, material |
+| `model.springs` | `springs` | Optional spring definitions |
+| `model.constraints` | `constraints` | Optional multipoint constraints |
+| `loading` | `node(:,8)` | Direct stress table or generated stresses from actions |
+| `analysis.lengths` | `lengths` | Explicit, linear, or logarithmic length set |
+| `analysis.boundary_condition` | `BC` | `S-S`, `C-C`, `S-C`, `C-F`, or `C-G` |
+| `analysis.longitudinal_terms` | `m_all` | Longitudinal terms per length |
+| `analysis.cfsm` | `GBTcon` | cFSM mode inclusion and basis settings |
+| `analysis.eigenmodes` | `neigs` | Number of eigenvalues requested |
+| `analysis.vectorized` | `ifVec` | Vectorized solver flag |
+
+The first supported analysis type is:
+
+```json
+"analysis": {
+  "type": "signature_curve"
+}
+```
+
+The first supported loading modes are:
+
+```json
+"loading": {
+  "type": "stress_table"
+}
+```
+
+and:
+
+```json
+"loading": {
+  "type": "generated_from_actions",
+  "fy": 50.0,
+  "unsymmetric": false,
+  "actions": {
+    "P_factor": 1.0,
+    "Mxx_factor": 0.0,
+    "Mzz_factor": 0.0,
+    "M11_factor": 0.0,
+    "M22_factor": 0.0
+  }
+}
+```
+
+The generated-action mode computes section properties, yield reference actions, and nodal stresses before analysis. This mirrors the loading workflow in `cufsm-octave-example.m`.
+
 ## Running the Example from Windows Using WSL
 
 If the repository is stored on your Windows drive and you want to run the example through WSL, use a command like this from PowerShell:
@@ -208,7 +276,7 @@ cufsm-results.txt
 
 ## Notes
 
-At this stage, the example model is defined directly inside:
+The original example model is defined directly inside:
 
 ```text
 cufsm-octave-example.m
@@ -216,13 +284,21 @@ cufsm-octave-example.m
 
 Users can modify this file to change the section geometry, material properties, loading, boundary conditions, and half-wavelength range.
 
-A future command-line interface may allow model and analysis parameters to be supplied from an external input file without editing the source script.
+For machine-readable workflows, prefer copying and editing:
+
+```text
+examples/lipped-channel.json
+```
+
+The JSON format is intentionally explicit and named-field based so that humans, scripts, and LLM agents can generate and validate inputs without relying on positional matrix columns.
+
+A draft validation schema is included at `schema/input-v1.schema.json`.
 
 ## Example Model
 
 The current example defines a lipped channel under uniform compression. It uses simply supported loaded edges (`S-S`) and evaluates 100 logarithmically spaced half-wavelengths from 1 to 1000. The first, or lowest, buckling eigenvalue at each half-wavelength forms the reported signature curve.
 
-The model is currently defined directly in `cufsm-octave-example.m`. A future CLI interface is intended to accept model and analysis parameters without requiring edits to the source file.
+The same model is available both as `cufsm-octave-example.m` and as `examples/lipped-channel.json`.
 
 ## Output
 
