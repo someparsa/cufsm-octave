@@ -16,6 +16,8 @@ This repository adapts CUFSM numerical routines for headless execution with GNU 
 
 - Runs CUFSM signature-curve analysis from `octave-cli`.
 - Supports reproducible JSON input for model, loading, analysis, and output settings.
+- Includes Python helpers for generating JSON inputs from common section templates.
+- Includes Python post-processing helpers for reading result JSON and plotting signature curves.
 - Supports generated loading from reference actions or direct stress-table loading.
 - Inserts declared member lengths into the solved length set.
 - Reports signature curves, critical points, classified minima, and cFSM mode participation.
@@ -71,7 +73,8 @@ cufsm-results.txt
 | JSON and text output fields | [docs/json-output-format.md](docs/json-output-format.md) |
 | Example walkthrough | [docs/examples.md](docs/examples.md) |
 | Signature-curve and mode-family background | [docs/theory-and-cufsm-background.md](docs/theory-and-cufsm-background.md) |
-| Validation status and needs | [docs/validation.md](docs/validation.md) |
+| Compatibility and regression scope | [docs/compatibility-and-regression.md](docs/compatibility-and-regression.md) |
+| Python tooling | [docs/python-tooling.md](docs/python-tooling.md) |
 | Development direction | [docs/development-roadmap.md](docs/development-roadmap.md) |
 | Backend code map | [docs/backend-code-map.md](docs/backend-code-map.md) |
 
@@ -134,7 +137,7 @@ See [docs/examples.md](docs/examples.md) for details.
 
 ## Project Status
 
-This repository is under active development. The JSON workflow executes successfully with GNU Octave, but formal numerical validation, automated tests, stable release contracts, and additional examples remain development priorities.
+This repository is under active development. The JSON workflow executes successfully with GNU Octave, and current development focuses on the headless runner contract, JSON/Python interoperability, examples, and compatibility checks against known CUFSM workflows.
 
 See [TODO.md](TODO.md), [IMPROVEMENTS.md](IMPROVEMENTS.md), and [docs/development-roadmap.md](docs/development-roadmap.md).
 

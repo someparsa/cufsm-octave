@@ -32,7 +32,7 @@ Avoid adding engineering flags such as boundary condition, member length, yield 
 ## Near-Term Priorities
 
 - Keep improving the JSON input and output contracts.
-- Add validation and regression tests.
+- Add lightweight compatibility checks around the JSON runner.
 - Add clearer error messages and exit codes.
 - Keep example results in `examples/` for easy inspection.
 - Document stable and experimental fields clearly.
@@ -40,17 +40,17 @@ Avoid adding engineering flags such as boundary condition, member length, yield 
 ## Medium-Term Priorities
 
 - Add JSON schema validation in the workflow.
-- Add Python helpers for generating inputs and reading outputs.
-- Add optional plotting outside the Octave numerical backend.
+- Expand Python section templates and input builders as new section families are needed.
+- Add optional cross-section and mode-shape plotting outside the Octave numerical backend.
 - Add more examples covering local, distortional, global, and mixed cases.
 
 ## Long-Term Options
 
 - Package a command wrapper around `cufsm_json.m`.
 - Generate static documentation from `docs/`.
-- Publish validated examples with reference results.
+- Publish reference examples where trusted CUFSM comparison data is available.
 - Add CI for Octave execution across platforms.
 
 ## Current Development State
 
-The project has a functioning headless JSON workflow, but it is not yet a fully packaged or formally validated CLI application. The code should be treated as active development until validation coverage and release contracts are stronger.
+The project has a functioning headless JSON workflow, but it is not yet a fully packaged CLI application. The code should be treated as active development until the JSON/Python contracts, examples, compatibility checks, and release expectations are stronger.

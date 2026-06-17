@@ -12,6 +12,9 @@ The schema is tracked in:
 schema/input-v1.schema.json
 ```
 
+Python helpers can load and validate input files before running Octave. See
+[`docs/python-tooling.md`](python-tooling.md).
+
 The current input version is:
 
 ```json

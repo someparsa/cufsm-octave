@@ -10,6 +10,9 @@ examples/lipped-channel-results.json
 
 The text report at `output.text_path` is a human-readable companion file.
 
+Python helpers can read the result JSON and expose common tables through
+`CufsmResult`. See [`docs/python-tooling.md`](python-tooling.md).
+
 ## Top-Level Result Structure
 
 Important top-level fields include:

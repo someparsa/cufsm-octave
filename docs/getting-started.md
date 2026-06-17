@@ -5,6 +5,7 @@ This guide shows the shortest path from a fresh checkout to running CUFSM Octave
 ## Requirements
 
 - GNU Octave with `octave-cli` available on the command line.
+- Python 3.9 or newer, if using the Python helper package.
 - Git, if cloning from GitHub.
 - A terminal: PowerShell, Command Prompt, Windows Terminal, macOS Terminal, Linux shell, or WSL.
 
@@ -90,6 +91,59 @@ examples/lipped-channel-results.txt
 ```
 
 The JSON result is the machine-readable result. The text report is easier to inspect manually.
+
+## Install The Python Helpers
+
+From the repository root:
+
+```bash
+python -m pip install -e .
+```
+
+Optional extras are installed separately:
+
+```bash
+python -m pip install -e ".[validation]"
+python -m pip install -e ".[plotting]"
+python -m pip install -e ".[dataframe]"
+```
+
+The `validation` extra enables full JSON Schema validation with `jsonschema`.
+The `plotting` extra enables matplotlib signature-curve plotting. The
+`dataframe` extra enables pandas result-table helpers.
+
+Run the checked-in JSON example through Python:
+
+```python
+from cufsm_octave import run_cufsm
+
+result = run_cufsm("examples/lipped-channel.json")
+print(result.overall_minimum)
+```
+
+Generate a JSON input from a named section template:
+
+```python
+from cufsm_octave import write_section_input
+
+write_section_input(
+    "examples/generated-unlipped-channel.json",
+    "unlipped-channel",
+    depth=8.0,
+    flange=3.0,
+    thickness=0.075,
+    fy=50.0,
+    output_path="examples/generated-unlipped-channel-results.json",
+)
+```
+
+Plot an existing result JSON after installing the `plotting` extra:
+
+```bash
+python examples/postprocess_signature_curve.py \
+  examples/lipped-channel-results.json \
+  examples/lipped-channel-signature-curve.png
+```
 
 ## Run The Legacy Script Example
 

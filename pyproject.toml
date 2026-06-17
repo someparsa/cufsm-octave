@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cufsm-octave"
+version = "0.1.0"
+description = "Python helpers for CUFSM Octave JSON workflows"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+  { name = "Parsa Yazdi" }
+]
+dependencies = []
+
+[project.optional-dependencies]
+validation = ["jsonschema>=4"]
+plotting = ["matplotlib>=3"]
+dataframe = ["pandas>=2"]
+
+[tool.setuptools.packages.find]
+include = ["cufsm_octave*"]
