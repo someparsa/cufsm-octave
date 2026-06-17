@@ -208,7 +208,10 @@
       "type": "logspace",
       "min": 1.0,
       "max": 1000.0,
-      "count": 100
+      "count": 100,
+      "member_lengths": [
+        120.0
+      ]
     },
     "longitudinal_terms": {
       "default": [
@@ -232,7 +235,7 @@
     }
   },
   "output": {
-    "path": "cufsm-results.json",
-    "text_path": "cufsm-results-from-json.txt"
+    "path": "examples/lipped-channel-results.json",
+    "text_path": "examples/lipped-channel-results.txt"
   }
 }

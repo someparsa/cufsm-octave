@@ -238,7 +238,8 @@
         "type": { "type": "string", "enum": ["logspace", "linspace"] },
         "min": { "type": "number", "exclusiveMinimum": 0 },
         "max": { "type": "number", "exclusiveMinimum": 0 },
-        "count": { "type": "integer", "minimum": 1 }
+        "count": { "type": "integer", "minimum": 1 },
+        "member_lengths": { "$ref": "#/$defs/memberLengths" }
       }
     },
     "explicitLengths": {
@@ -251,8 +252,14 @@
           "type": "array",
           "minItems": 1,
           "items": { "type": "number", "exclusiveMinimum": 0 }
-        }
+        },
+        "member_lengths": { "$ref": "#/$defs/memberLengths" }
       }
+    },
+    "memberLengths": {
+      "type": "array",
+      "items": { "type": "number", "exclusiveMinimum": 0 },
+      "default": []
     },
     "cfsm": {
       "type": "object",

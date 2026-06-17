@@ -77,7 +77,7 @@ if ~any(strcmp(BC,valid_BC))
     error('Unsupported boundary_condition: %s',BC);
 end
 
-lengths = build_lengths(cfg.analysis.lengths);
+[lengths,member_lengths] = build_lengths(cfg.analysis.lengths);
 m_all = build_longitudinal_terms(cfg.analysis, length(lengths));
 springs = optional_table(cfg.model,'springs');
 constraints = optional_table(cfg.model,'constraints');
@@ -92,15 +92,27 @@ for i = 1:length(curve)
     signature_curve(i,:) = curve{i}(1,1:2);
 end
 
+warning_state = warning('off','all');
+clas = classify_headless(prop,node,elem,lengths,shapes,GBTcon,BC,m_all);
+warning(warning_state);
+lowest_mode_participation = build_lowest_mode_participation(curve,clas);
+
 local_minima = [];
+local_minima_classified = [];
 for i = 2:size(signature_curve,1)-1
     if signature_curve(i,2) < signature_curve(i-1,2) && ...
             signature_curve(i,2) < signature_curve(i+1,2)
         local_minima = [local_minima; signature_curve(i,:)];
+        local_minima_classified = [local_minima_classified; ...
+            classified_point_row(i,signature_curve(i,1),signature_curve(i,2),clas{i}(1,:))];
     end
 end
 [critical_load_factor,critical_index] = min(signature_curve(:,2));
 critical_length = signature_curve(critical_index,1);
+overall_minimum_classified = classified_point_row(critical_index,critical_length,critical_load_factor,clas{critical_index}(1,:));
+family_minima = build_family_minima(local_minima_classified);
+member_mode_participation = build_requested_mode_participation(member_lengths,lengths,curve,clas);
+minimum_mode_participation = build_minimum_mode_participation(local_minima,lengths,curve,clas);
 
 output_cfg = struct();
 if isfield(cfg,'output')
@@ -140,6 +152,7 @@ results.analysis_settings = struct( ...
     'minimum_length',min(lengths), ...
     'maximum_length',max(lengths), ...
     'requested_eigenmodes',neigs, ...
+    'member_lengths',member_lengths, ...
     'vectorized',ifVec, ...
     'springs_defined',~(isscalar(springs) && springs == 0), ...
     'constraints_defined',~(isscalar(constraints) && constraints == 0), ...
@@ -148,7 +161,17 @@ results.section_properties = section_properties;
 results.signature_curve = signature_curve;
 results.critical_points = struct( ...
     'overall_minimum',[critical_length critical_load_factor], ...
-    'local_minima',local_minima);
+    'overall_minimum_classified',overall_minimum_classified, ...
+    'local_minima',local_minima, ...
+    'local_minima_classified',local_minima_classified, ...
+    'family_minima',family_minima);
+results.mode_participation = struct( ...
+    'family_labels',{{'global','distortional','local','other'}}, ...
+    'table_columns',{{'length','eigenvalue','global_percent','distortional_percent','local_percent','other_percent','dominant_family_id'}}, ...
+    'lowest_modes',lowest_mode_participation, ...
+    'participation_point_columns',{{'requested_length','matched_length','length_index','mode_number','eigenvalue','global_percent','distortional_percent','local_percent','other_percent','dominant_family_id'}}, ...
+    'member_lengths',member_mode_participation, ...
+    'signature_minima',minimum_mode_participation);
 
 fid = fopen(output_path,'w');
 if fid < 0
@@ -162,7 +185,7 @@ if isfield(output_cfg,'text_path')
     if ~is_absolute_path(text_path)
         text_path = fullfile(location,text_path);
     end
-    write_text_report(text_path,prop,node,elem,BC,lengths,neigs,springs,constraints,GBTcon,signature_curve,critical_length,critical_load_factor,local_minima);
+    write_text_report(text_path,prop,node,elem,BC,lengths,member_lengths,neigs,springs,constraints,GBTcon,signature_curve,critical_length,critical_load_factor,local_minima,local_minima_classified,family_minima,lowest_mode_participation,member_mode_participation,minimum_mode_participation);
 end
 
 fprintf('JSON results written to %s\n',output_path);
@@ -226,8 +249,9 @@ function validate_model(prop,node,elem)
     end
 end
 
-function lengths = build_lengths(length_cfg)
+function [lengths,member_lengths] = build_lengths(length_cfg)
     length_type = optional_string(length_cfg,'type','explicit');
+    member_lengths = optional_numeric_vector(length_cfg,'member_lengths',[]);
     if strcmp(length_type,'logspace')
         mn = require_number(length_cfg,'min','analysis.lengths.min');
         mx = require_number(length_cfg,'max','analysis.lengths.max');
@@ -243,6 +267,10 @@ function lengths = build_lengths(length_cfg)
     else
         error('Unsupported analysis.lengths.type: %s',length_type);
     end
+    if any(member_lengths <= 0)
+        error('All member_lengths must be positive.');
+    end
+    lengths = unique([lengths(:); member_lengths(:)]);
     if any(lengths <= 0)
         error('All lengths must be positive.');
     end
@@ -384,6 +412,14 @@ function value = optional_bool(s,name,default_value)
     end
 end
 
+function value = optional_numeric_vector(s,name,default_value)
+    if isstruct(s) && isfield(s,name) && ~isempty(s.(name))
+        value = numeric_vector(s.(name));
+    else
+        value = default_value;
+    end
+end
+
 function out = numeric_vector(value)
     if isempty(value)
         out = [];
@@ -404,7 +440,90 @@ function tf = is_absolute_path(path_value)
     end
 end
 
-function write_text_report(output_file,prop,node,elem,BC,lengths,neigs,springs,constraints,GBTcon,signature_curve,critical_length,critical_load_factor,local_minima)
+
+function clas = classify_headless(prop,node,elem,lengths,shapes,GBTcon,BC,m_all)
+    nnodes = length(node(:,1));
+    ndof_m = 4 * nnodes;
+    [m_all] = msort(m_all);
+    clas = cell(length(lengths),1);
+    for l = 1:length(lengths)
+        a = lengths(l);
+        m_a = m_all{l};
+        [b_v_l,ngm,ndm,nlm] = base_column(node,elem,prop,a,BC,m_a);
+        b_v = base_update(GBTcon.ospace,GBTcon.norm,b_v_l,a,m_a,node,elem,prop,ngm,ndm,nlm,BC,GBTcon.couple,GBTcon.orth);
+        clas{l} = zeros(size(shapes{l},2),4);
+        for mod = 1:size(shapes{l},2)
+            clas{l}(mod,1:4) = mode_class(b_v,shapes{l}(:,mod),ngm,ndm,nlm,m_a,ndof_m,GBTcon.couple);
+        end
+    end
+end
+
+function table = build_lowest_mode_participation(curve,clas)
+    table = zeros(length(curve),7);
+    for i = 1:length(curve)
+        parts = clas{i}(1,:);
+        table(i,:) = [curve{i}(1,1) curve{i}(1,2) parts dominant_family_id(parts)];
+    end
+end
+
+function row = classified_point_row(index_value,length_value,eigenvalue,parts)
+    row = [length_value eigenvalue index_value parts dominant_family_id(parts)];
+end
+
+function family_id = dominant_family_id(parts)
+    [mx,family_id] = max(parts);
+    if isempty(mx) || mx <= 0
+        family_id = 0;
+    end
+end
+
+function family_minima = build_family_minima(local_minima_classified)
+    family_minima = [];
+    if isempty(local_minima_classified)
+        return
+    end
+    for family_id = 1:4
+        rows = local_minima_classified(local_minima_classified(:,8) == family_id,:);
+        if ~isempty(rows)
+            [mn,idx] = min(rows(:,2));
+            best = rows(idx,:);
+            family_minima = [family_minima; family_id best(1:7)];
+        end
+    end
+end
+
+function table = build_minimum_mode_participation(local_minima,lengths,curve,clas)
+    if isempty(local_minima)
+        table = [];
+    else
+        table = build_requested_mode_participation(local_minima(:,1),lengths,curve,clas);
+    end
+end
+
+function table = build_requested_mode_participation(requested_lengths,lengths,curve,clas)
+    table = [];
+    for r = 1:length(requested_lengths)
+        requested_length = requested_lengths(r);
+        [delta,length_index] = min(abs(lengths - requested_length));
+        matched_length = lengths(length_index);
+        for mode_number = 1:size(curve{length_index},1)
+            eigenvalue = curve{length_index}(mode_number,2);
+            parts = clas{length_index}(mode_number,:);
+            table = [table; requested_length matched_length length_index mode_number eigenvalue parts dominant_family_id(parts)];
+        end
+    end
+end
+
+function label = family_label(family_id)
+    labels = {'global','distortional','local','other'};
+    if family_id >= 1 && family_id <= 4
+        label = labels{family_id};
+    else
+        label = 'unknown';
+    end
+end
+
+function write_text_report(output_file,prop,node,elem,BC,lengths,member_lengths,neigs,springs,constraints,GBTcon,signature_curve,critical_length,critical_load_factor,local_minima,local_minima_classified,family_minima,lowest_mode_participation,member_mode_participation,minimum_mode_participation)
     fid = fopen(output_file,'w');
     if fid < 0
         error('Unable to open output file: %s',output_file);
@@ -433,6 +552,11 @@ function write_text_report(output_file,prop,node,elem,BC,lengths,neigs,springs,c
     fprintf(fid,'minimum_length,%.12g\n',min(lengths));
     fprintf(fid,'maximum_length,%.12g\n',max(lengths));
     fprintf(fid,'requested_eigenmodes,%d\n',neigs);
+    fprintf(fid,'member_lengths');
+    for i = 1:length(member_lengths)
+        fprintf(fid,',%.12g',member_lengths(i));
+    end
+    fprintf(fid,'\n');
     fprintf(fid,'springs_defined,%d\n',~(isscalar(springs) && springs == 0));
     fprintf(fid,'constraints_defined,%d\n',~(isscalar(constraints) && constraints == 0));
     fprintf(fid,'cfsm_active,%d\n',any([GBTcon.local GBTcon.dist GBTcon.glob GBTcon.other]));
@@ -446,6 +570,49 @@ function write_text_report(output_file,prop,node,elem,BC,lengths,neigs,springs,c
     fprintf(fid,'overall_minimum,%.12g,%.12g\n',critical_length,critical_load_factor);
     for i = 1:size(local_minima,1)
         fprintf(fid,'local_minimum,%.12g,%.12g\n',local_minima(i,1),local_minima(i,2));
+    end
+    fprintf(fid,'\nCLASSIFIED LOCAL MINIMA\n');
+    fprintf(fid,'type,half_wavelength,lowest_eigenvalue,length_index,global_percent,distortional_percent,local_percent,other_percent,dominant_family\n');
+    for i = 1:size(local_minima_classified,1)
+        fprintf(fid,'local_minimum,%.12g,%.12g,%d,%.12g,%.12g,%.12g,%.12g,%s\n', ...
+            local_minima_classified(i,1),local_minima_classified(i,2),local_minima_classified(i,3), ...
+            local_minima_classified(i,4),local_minima_classified(i,5),local_minima_classified(i,6),local_minima_classified(i,7), ...
+            family_label(local_minima_classified(i,8)));
+    end
+    fprintf(fid,'\nFAMILY MINIMA\n');
+    fprintf(fid,'dominant_family,half_wavelength,lowest_eigenvalue,length_index,global_percent,distortional_percent,local_percent,other_percent\n');
+    for i = 1:size(family_minima,1)
+        fprintf(fid,'%s,%.12g,%.12g,%d,%.12g,%.12g,%.12g,%.12g\n', ...
+            family_label(family_minima(i,1)),family_minima(i,2),family_minima(i,3),family_minima(i,4), ...
+            family_minima(i,5),family_minima(i,6),family_minima(i,7),family_minima(i,8));
+    end
+    fprintf(fid,'\nLOWEST MODE PARTICIPATION\n');
+    fprintf(fid,'half_wavelength,lowest_eigenvalue,global_percent,distortional_percent,local_percent,other_percent,dominant_family\n');
+    for i = 1:size(lowest_mode_participation,1)
+        fprintf(fid,'%.12g,%.12g,%.12g,%.12g,%.12g,%.12g,%s\n', ...
+            lowest_mode_participation(i,1),lowest_mode_participation(i,2),lowest_mode_participation(i,3), ...
+            lowest_mode_participation(i,4),lowest_mode_participation(i,5),lowest_mode_participation(i,6), ...
+            family_label(lowest_mode_participation(i,7)));
+    end
+    if ~isempty(member_mode_participation)
+        fprintf(fid,'\nMEMBER LENGTH MODE PARTICIPATION\n');
+        fprintf(fid,'requested_length,matched_length,length_index,mode_number,eigenvalue,global_percent,distortional_percent,local_percent,other_percent,dominant_family\n');
+        for i = 1:size(member_mode_participation,1)
+            fprintf(fid,'%.12g,%.12g,%d,%d,%.12g,%.12g,%.12g,%.12g,%.12g,%s\n', ...
+                member_mode_participation(i,1),member_mode_participation(i,2),member_mode_participation(i,3),member_mode_participation(i,4), ...
+                member_mode_participation(i,5),member_mode_participation(i,6),member_mode_participation(i,7), ...
+                member_mode_participation(i,8),member_mode_participation(i,9),family_label(member_mode_participation(i,10)));
+        end
+    end
+    if ~isempty(minimum_mode_participation)
+        fprintf(fid,'\nSIGNATURE MINIMA MODE PARTICIPATION\n');
+        fprintf(fid,'requested_length,matched_length,length_index,mode_number,eigenvalue,global_percent,distortional_percent,local_percent,other_percent,dominant_family\n');
+        for i = 1:size(minimum_mode_participation,1)
+            fprintf(fid,'%.12g,%.12g,%d,%d,%.12g,%.12g,%.12g,%.12g,%.12g,%s\n', ...
+                minimum_mode_participation(i,1),minimum_mode_participation(i,2),minimum_mode_participation(i,3),minimum_mode_participation(i,4), ...
+                minimum_mode_participation(i,5),minimum_mode_participation(i,6),minimum_mode_participation(i,7), ...
+                minimum_mode_participation(i,8),minimum_mode_participation(i,9),family_label(minimum_mode_participation(i,10)));
+        end
     end
     fclose(fid);
 end
