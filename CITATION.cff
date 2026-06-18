@@ -8,9 +8,9 @@ message: >
   in the references.
 
 title: "CUFSM Octave CLI"
-version: "1.5.66"
-doi: "10.5281/zenodo.20635623"
-date-released: 2026-06-11
+version: "2.5.66"
+doi: "10.5281/zenodo.20635622"
+date-released: 2026-06-18
 
 authors:
   - family-names: Yazdi
