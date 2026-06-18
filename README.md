@@ -86,16 +86,17 @@ The JSON schema is tracked at [schema/input-v1.schema.json](schema/input-v1.sche
 This repository uses separate version identifiers for separate compatibility
 surfaces:
 
-| Version surface | Meaning |
-| --- | --- |
-| Project release, for example `v2.5.66` | CUFSM Octave CLI release version. The leading project number identifies this repository's interface/tooling generation. |
-| CUFSM compatibility, `5.66` | Original CUFSM numerical source version that this project is compatible with or derived from. |
-| Python package version | Version in `pyproject.toml`; this follows its own Python tooling release track. |
-| JSON input version, currently `1.0` | Version of the JSON input contract used inside input files and the JSON schema. |
+| Version surface | Current version | Meaning |
+| --- | --- | --- |
+| Project release | `v2.5.66` | CUFSM Octave CLI release version. The leading project number identifies this repository's interface/tooling generation. |
+| CUFSM compatibility | `5.66` | Original CUFSM numerical source version that this project is compatible with or derived from. |
+| Python package | `0.2.0` | Version in `pyproject.toml`; this follows its own Python tooling release track. |
+| JSON input schema | `1.0` | Version of the JSON input contract used inside input files and the JSON schema. |
 
-For example, a release named `v2.5.66` means the second-generation CUFSM Octave
-interface/tooling release built around compatibility with CUFSM `5.66`. The JSON
-input schema can remain at `1.0` until the JSON contract itself changes.
+For this release, `v2.5.66` means the second-generation CUFSM Octave
+interface/tooling release built around compatibility with CUFSM `5.66`. The
+Python package is versioned separately as `0.2.0`, and the JSON input schema
+remains `1.0` because the JSON contract has not been version-bumped.
 
 ## JSON Workflow Summary
 
