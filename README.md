@@ -6,7 +6,7 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
 ![Status](https://img.shields.io/badge/status-development-orange)
 
-**Octave-oriented adaptation by Parsa Yazdi**
+**Octave-oriented adaptation by [Parsa Yazdi](https://www.linkedin.com/in/parsayazdi/)**
 
 CUFSM Octave CLI is a command-line-oriented adaptation of [CUFSM](https://github.com/thinwalled/cufsm-git), the constrained and unconstrained finite strip method software for elastic buckling analysis of thin-walled member cross-sections.
 
