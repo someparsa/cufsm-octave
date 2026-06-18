@@ -18,6 +18,7 @@ This repository adapts CUFSM numerical routines for headless execution with GNU 
 - Supports reproducible JSON input for model, loading, analysis, and output settings.
 - Includes Python helpers for generating JSON inputs from common section templates.
 - Includes Python post-processing helpers for reading result JSON and plotting signature curves.
+- Includes Python workflow examples for batch sweeps and simple grid-search optimization.
 - Supports generated loading from reference actions or direct stress-table loading.
 - Inserts declared member lengths into the solved length set.
 - Reports signature curves, critical points, classified minima, and cFSM mode participation.

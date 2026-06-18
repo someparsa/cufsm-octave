@@ -22,6 +22,7 @@
 - [x] Generate JSON inputs from common section templates.
 - [x] Export signature curves and mode data through Python-friendly accessors.
 - [x] Add optional Python plotting for signature curves.
+- [x] Add Python examples for batch runs and simple grid-search optimization.
 - [ ] Add optional Python plotting for cross-sections and mode shapes.
 - [ ] Support development of graphical applications in Python without coupling
   the numerical backend to a specific GUI framework.

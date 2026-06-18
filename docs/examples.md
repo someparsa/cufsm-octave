@@ -1,9 +1,10 @@
 # Examples
 
 The repository currently includes one checked-in JSON analysis example, one
-checked-in legacy Octave script example, and one Python post-processing example.
+checked-in legacy Octave script example, and three Python workflow examples.
 The Python package can also generate additional JSON inputs from section
-templates; those generated files are not checked in unless a user writes them.
+templates; generated inputs and results are written only when a user runs the
+workflow scripts.
 
 ## Checked-In JSON Example
 
@@ -141,6 +142,143 @@ python examples/postprocess_signature_curve.py \
 The script calls `cufsm_octave.plotting.save_signature_curve_plot`. The plot
 marks the signature curve, overall minimum, detected local minima, and family
 minima when those result tables exist.
+
+## Python Batch Run Example
+
+The batch example sweeps lipped-channel lip length and thickness. It writes one
+JSON input and one result file per case, then writes a CSV summary. If
+matplotlib is installed, it also writes a signature-curve comparison plot.
+
+```text
+examples/python_batch_lipped_channel.py
+```
+
+Run:
+
+```bash
+python examples/python_batch_lipped_channel.py
+```
+
+The sweep is:
+
+| Parameter | Values |
+| --- | --- |
+| `thickness` | `0.075`, `0.100`, `0.125` |
+| `lip` | `0.50`, `0.75`, `1.00`, `1.25` |
+
+Fixed settings:
+
+| Setting | Value |
+| --- | --- |
+| section type | `lipped-channel` |
+| depth | `9.0` |
+| flange | `5.0` |
+| yield stress `fy` | `50.0` |
+| boundary condition | `S-S` |
+| member length | `120.0` |
+| length range | logspace from `1.0` to `1000.0`, `60` points |
+| eigenmodes | `6` |
+
+Generated outputs:
+
+```text
+examples/batch-results/
+  t0p075_lip0p50.json
+  t0p075_lip0p50-results.json
+  t0p075_lip0p50-results.txt
+  ...
+  batch-summary.csv
+  signature-curve-comparison.png   # only when matplotlib is installed
+```
+
+The summary CSV columns are:
+
+```text
+case_id,
+lip,
+thickness,
+overall_minimum_length,
+overall_minimum_factor,
+member_length,
+member_length_factor,
+member_length_dominant_family,
+result_json
+```
+
+This example demonstrates Python orchestration around the JSON runner: generate
+cases, run Octave, collect key result values, and compare curves.
+
+## Python Optimization Example
+
+The optimization example performs a small grid search over lipped-channel flange
+width and lip length. It selects the case with the largest lowest-mode
+eigenvalue at the requested member length.
+
+```text
+examples/python_optimize_lipped_channel.py
+```
+
+Run:
+
+```bash
+python examples/python_optimize_lipped_channel.py
+```
+
+The search grid is:
+
+| Parameter | Values |
+| --- | --- |
+| `flange` | `4.0`, `4.5`, `5.0`, `5.5`, `6.0` |
+| `lip` | `0.50`, `0.75`, `1.00`, `1.25`, `1.50` |
+
+Cases where `lip >= flange` are skipped.
+
+Fixed settings:
+
+| Setting | Value |
+| --- | --- |
+| section type | `lipped-channel` |
+| depth | `9.0` |
+| thickness | `0.1` |
+| yield stress `fy` | `50.0` |
+| boundary condition | `S-S` |
+| member length | `120.0` |
+| objective | maximize lowest eigenvalue at member length `120.0` |
+| length range | logspace from `1.0` to `1000.0`, `60` points |
+| eigenmodes | `6` |
+
+Generated outputs:
+
+```text
+examples/optimization-results/
+  flange4p00_lip0p50.json
+  flange4p00_lip0p50-results.json
+  flange4p00_lip0p50-results.txt
+  ...
+  optimization-summary.csv
+  best-case.json
+  best-case-results.json
+  best-signature-curve.png   # only when matplotlib is installed
+```
+
+The summary CSV columns are:
+
+```text
+case_id,
+flange,
+lip,
+objective_member_length_factor,
+member_length,
+member_length_dominant_family,
+overall_minimum_length,
+overall_minimum_factor,
+input_json,
+result_json
+```
+
+This example is intentionally a transparent grid search. It shows how to define
+a scalar objective from result JSON, preserve every case, and copy the best
+input/result pair for later review.
 
 ## Python-Generated Input Examples
 

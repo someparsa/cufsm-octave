@@ -256,6 +256,50 @@ python examples/postprocess_signature_curve.py \
 
 The example reads only the result JSON. It does not rerun Octave.
 
+## Batch And Optimization Workflows
+
+Batch and optimization are handled in Python as orchestration around the JSON
+runner. The Octave solver still receives one JSON input at a time.
+
+Two runnable examples are included:
+
+| Example | Purpose |
+| --- | --- |
+| `examples/python_batch_lipped_channel.py` | Sweep lipped-channel lip length and thickness, run every case, write a CSV summary, and optionally plot all signature curves. |
+| `examples/python_optimize_lipped_channel.py` | Grid-search flange width and lip length, choose the best member-length eigenvalue, and preserve the best input/result pair. |
+
+Run the batch example:
+
+```bash
+python examples/python_batch_lipped_channel.py
+```
+
+It writes generated files under:
+
+```text
+examples/batch-results/
+```
+
+Run the optimization example:
+
+```bash
+python examples/python_optimize_lipped_channel.py
+```
+
+It writes generated files under:
+
+```text
+examples/optimization-results/
+```
+
+Both examples use only the Python standard library plus `cufsm_octave`.
+Comparison plots are skipped automatically when `matplotlib` is not installed.
+Install plotting support with:
+
+```bash
+python -m pip install -e ".[plotting]"
+```
+
 ## DataFrame Helpers
 
 Install DataFrame support:

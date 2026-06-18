@@ -145,6 +145,16 @@ python examples/postprocess_signature_curve.py \
   examples/lipped-channel-signature-curve.png
 ```
 
+Run the Python batch and optimization examples:
+
+```bash
+python examples/python_batch_lipped_channel.py
+python examples/python_optimize_lipped_channel.py
+```
+
+These examples generate their own input/result files under
+`examples/batch-results/` and `examples/optimization-results/`.
+
 ## Run The Legacy Script Example
 
 The older hardcoded example is still available:
