@@ -4,3 +4,6 @@ __pycache__/
 examples/batch-results/
 examples/optimization-results/
 examples/*-signature-curve.png
+__pycache__/
+*.pyc
+.DS_Store
