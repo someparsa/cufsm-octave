@@ -12,13 +12,15 @@ CUFSM Octave CLI is a command-line-oriented adaptation of [CUFSM](https://github
 
 This repository adapts CUFSM numerical routines for headless execution with GNU Octave. The main workflow runs signature-curve analyses from JSON input files and writes machine-readable JSON results plus text reports.
 
+For citation details, please use the repository’s citation file: [CITATION.cff](https://github.com/someparsa/cufsm-octave/blob/main/CITATION.cff), or cite the archived release as: Yazdi, P. (2026). *CUFSM Octave CLI*. Zenodo. [https://doi.org/10.5281/zenodo.20635622](https://doi.org/10.5281/zenodo.20635622)
+
 ## Current Capabilities
 
 - Runs CUFSM signature-curve analysis from `octave-cli`.
 - Supports reproducible JSON input for model, loading, analysis, and output settings.
 - Includes Python helpers for generating JSON inputs from common section templates.
 - Includes Python post-processing helpers for reading result JSON and plotting signature curves.
-- Includes Python workflow examples for batch sweeps and simple grid-search optimization.
+- Includes Python workflow examples for batch sweeps and simple grid-search optimisation.
 - Supports generated loading from reference actions or direct stress-table loading.
 - Inserts declared member lengths into the solved length set.
 - Reports signature curves, critical points, classified minima, and cFSM mode participation.
