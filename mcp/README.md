@@ -125,12 +125,13 @@ item types, and applicable numeric constraints. Unknown fields are rejected.
 
 ### Defaults
 
-`schema/input-v1.schema.json` is the only source of MCP initial values. The
-server reads both `default` and fixed `const` annotations at startup and does
-not copy example, test, README, webapp, or Python template starter values into
-the tool schemas. Canonical `const` values are mirrored to the presentation-only
-MCP `default` annotation so Inspector prefills them, while their required status
-and `const` constraint remain unchanged.
+Two independent layers of defaults apply.
+
+**Canonical schema defaults.** The server reads both `default` and fixed
+`const` annotations from `schema/input-v1.schema.json` at startup. Canonical
+`const` values are mirrored to the presentation-only MCP `default` annotation
+so Inspector prefills them, while their required status and `const`
+constraint remain unchanged.
 
 | Effective/MCP path | Exact schema `const`/`default` path | Value |
 | --- | --- | --- |
@@ -147,17 +148,36 @@ and `const` constraint remain unchanged.
 | generated `model.springs` | `properties.model.properties.springs.default` | `[]` |
 | generated `model.constraints` | `properties.model.properties.constraints.default` | `[]` |
 
-The canonical schema defines no initial values for geometry, material, unit system,
-yield stress, loading actions, boundary condition, length type/range/count,
-longitudinal terms, or cFSM options. Those fields are therefore not populated
-from an example. Geometry and material are required MCP inputs, while optional
-canonical objects remain optional. The schema's required `analysis.type`,
-`analysis.boundary_condition`, and `analysis.lengths` fields must be supplied.
+**MCP-convenience defaults.** The canonical schema defines no initial values
+for geometry, material, unit system, yield stress, or loading actions, and
+omitting any of them used to make the tool call fail outright. The MCP layer
+now fills those specific fields with a typical mm/MPa cold-formed-steel
+lipped channel so a call can omit them entirely. These are not schema values
+— every one of them can still be overridden per call.
 
-Consequently, `{}` is intentionally not a valid analysis call. A minimum
-successful call supplies the non-default geometry, material, loading, and
-required analysis definition, while omitting only fields with the schema
-defaults listed above.
+| MCP path | Default value |
+| --- | --- |
+| `section.units.system` | `"mm_MPa"` |
+| `section.geometry.section_type` | `"lipped-channel"` |
+| `section.geometry.depth` | `195.0` |
+| `section.geometry.flange` | `45.0` |
+| `section.geometry.lip` | `15.0` |
+| `section.geometry.thickness` | `1.5` |
+| `section.material.id` | `100` |
+| `section.material.Ex`, `Ey` | `200000.0` |
+| `section.material.nu_x`, `nu_y` | `0.3` |
+| `section.material.G` | `76923.08` (`Ex / (2 * (1 + nu_x))`) |
+| `loading.fy` | `350.0` |
+| `loading.actions.P_factor` | `1.0` (pure axial compression; all other actions default to `0`) |
+
+`analysis.boundary_condition` and `analysis.lengths` remain required with no
+default: the length sweep and boundary condition are study-specific choices
+that don't have a universally reasonable default, unlike geometry/material.
+
+Consequently, `{}` is still not a valid `analyze_section`/`signature_curve`
+call — `analysis` must still be supplied — but `analyze_lipped_channel` now
+only strictly requires `analysis`; every geometry, material, unit, and
+loading field is optional.
 
 ## Results
 
@@ -305,10 +325,38 @@ For `analyze_lipped_channel`, move the five geometry values to top-level
 arguments, omit `section` and `section_type`, and keep the same `material`,
 `loading`, and `analysis` objects.
 
+### Minimum call using MCP-convenience defaults
+
+`analyze_lipped_channel` is the only tool where `section`/`loading` are not
+required at all. This call supplies only the study-specific `analysis`
+definition; geometry, units, material, and loading (a pure axial-compression
+reference load) all resolve to the MCP-convenience defaults documented above.
+
+```json
+{
+  "analysis": {
+    "type": "signature_curve",
+    "boundary_condition": "S-S",
+    "lengths": {
+      "type": "logspace",
+      "min": 10.0,
+      "max": 10000.0,
+      "count": 60
+    }
+  }
+}
+```
+
+`analyze_section` and `signature_curve` still require a `section` argument,
+but its `geometry` and `material` objects may each be partial or `{}` — any
+field they omit resolves the same way.
+
 ### Partial overrides
 
-Only fields having canonical defaults may be omitted. MCP is stateless, so a
-request must still contain every non-default required field. To test a partial
+Fields having canonical or MCP-convenience defaults may be omitted. MCP is
+stateless, so a request must still contain every field with no default
+(`analysis.boundary_condition`, `analysis.lengths`, and, for `analyze_section`
+/`signature_curve`, the `section` argument itself). To test a partial
 engineering change, reuse the minimum request above and change only one value,
 for example `section.geometry.thickness` from `0.1` to `0.12`. The effective
 input retains `unsymmetric = false`, `member_lengths = []`, `eigenmodes = 20`,

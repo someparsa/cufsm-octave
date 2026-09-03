@@ -84,8 +84,24 @@ def _canonical_keyword_values(keyword: str) -> tuple[Any, ...]:
 
 
 # Every value below is read from an explicit `default` keyword in the
-# canonical repository schema. Parametric geometry has no schema defaults and
-# is therefore required from the MCP caller.
+# canonical repository schema. Parametric geometry, material, and reference
+# loading have no schema defaults; the MCP-convenience defaults below are not
+# canonical schema values, so a caller can still override every one of them.
+_DEFAULT_UNIT_SYSTEM = "mm_MPa"
+_DEFAULT_SECTION_TYPE: SectionType = "lipped-channel"
+_DEFAULT_DEPTH = 195.0
+_DEFAULT_FLANGE = 45.0
+_DEFAULT_LIP = 15.0
+_DEFAULT_THICKNESS = 1.5
+_DEFAULT_MATERIAL_ID = 100
+_DEFAULT_EX = 200000.0
+_DEFAULT_EY = 200000.0
+_DEFAULT_NU_X = 0.3
+_DEFAULT_NU_Y = 0.3
+_DEFAULT_G = _DEFAULT_EX / (2 * (1 + _DEFAULT_NU_X))
+_DEFAULT_FY = 350.0
+_DEFAULT_P_FACTOR = 1.0
+
 _DEFAULT_SPRINGS = _canonical_default("properties", "model", "properties", "springs")
 _DEFAULT_CONSTRAINTS = _canonical_default("properties", "model", "properties", "constraints")
 _DEFAULT_EIGENMODES = _canonical_default("properties", "analysis", "properties", "eigenmodes")
@@ -129,11 +145,12 @@ class UnitDefinition(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     system: str | None = Field(
-        default=None,
+        default=_DEFAULT_UNIT_SYSTEM,
         description=(
-            "Optional unit convention for dimensional values. The canonical "
-            "schema defines no default. Webapp choices include mm_MPa, in_ksi, "
-            "mm_N, m_N, and in_lb, with custom values permitted."
+            "Unit convention for dimensional values. The canonical schema "
+            "defines no default; this MCP layer defaults to mm_MPa to match "
+            "its own geometry/material/loading defaults. Webapp choices also "
+            "include in_ksi, mm_N, m_N, and in_lb, with custom values permitted."
         ),
     )
 
@@ -143,24 +160,32 @@ class MaterialDefinition(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    id: int = Field(description="Material identifier used by generated elements.")
+    id: int = Field(
+        default=_DEFAULT_MATERIAL_ID,
+        description="Material identifier used by generated elements.",
+    )
     Ex: float = Field(
+        default=_DEFAULT_EX,
         allow_inf_nan=False,
         description="Longitudinal elastic modulus, in the selected unit system.",
     )
     Ey: float = Field(
+        default=_DEFAULT_EY,
         allow_inf_nan=False,
         description="Transverse elastic modulus, in the selected unit system.",
     )
     nu_x: float = Field(
+        default=_DEFAULT_NU_X,
         allow_inf_nan=False,
         description="Poisson ratio nu_x.",
     )
     nu_y: float = Field(
+        default=_DEFAULT_NU_Y,
         allow_inf_nan=False,
         description="Poisson ratio nu_y.",
     )
     G: float = Field(
+        default=_DEFAULT_G,
         allow_inf_nan=False,
         description="Shear modulus, in the selected unit system.",
     )
@@ -171,23 +196,30 @@ class SectionGeometry(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    section_type: SectionType = Field(description="Section family supported by the public template builder.")
+    section_type: SectionType = Field(
+        default=_DEFAULT_SECTION_TYPE,
+        description="Section family supported by the public template builder.",
+    )
     depth: float = Field(
+        default=_DEFAULT_DEPTH,
         gt=0,
         allow_inf_nan=False,
         description="Web depth in the length unit identified by units.system.",
     )
     flange: float = Field(
+        default=_DEFAULT_FLANGE,
         gt=0,
         allow_inf_nan=False,
         description="Equal top and bottom flange width in the selected length unit.",
     )
     lip: float = Field(
+        default=_DEFAULT_LIP,
         ge=0,
         allow_inf_nan=False,
         description="Lip length; required for lipped-channel and sigma-section.",
     )
     thickness: float = Field(
+        default=_DEFAULT_THICKNESS,
         gt=0,
         allow_inf_nan=False,
         description="Section thickness in the selected length unit.",
@@ -216,9 +248,9 @@ class SectionDefinition(BaseModel):
 
     version: Literal["1.0"] = "1.0"
     metadata: StudyMetadata | None = None
-    units: UnitDefinition | None = None
-    geometry: SectionGeometry
-    material: MaterialDefinition
+    units: UnitDefinition | None = Field(default_factory=UnitDefinition)
+    geometry: SectionGeometry = Field(default_factory=SectionGeometry)
+    material: MaterialDefinition = Field(default_factory=MaterialDefinition)
 
 
 class GeneratedActions(BaseModel):
@@ -265,12 +297,15 @@ class LoadingDefinition(BaseModel):
 
     type: Literal["generated_from_actions"] = "generated_from_actions"
     fy: float = Field(
+        default=_DEFAULT_FY,
         gt=0,
         allow_inf_nan=False,
         description="Reference yield stress in the selected unit system.",
     )
     unsymmetric: bool = bool(_DEFAULT_UNSYMMETRIC)
-    actions: GeneratedActions
+    actions: GeneratedActions = Field(
+        default_factory=lambda: GeneratedActions(P_factor=_DEFAULT_P_FACTOR)
+    )
 
 
 class GeneratedLengths(BaseModel):
@@ -377,12 +412,12 @@ server = MCPServer(
 
 @server.tool(annotations=READ_ONLY_TOOL)
 def analyze_lipped_channel(
-    depth: Annotated[float, Field(gt=0, allow_inf_nan=False)],
-    flange: Annotated[float, Field(gt=0, allow_inf_nan=False)],
-    lip: Annotated[float, Field(gt=0, allow_inf_nan=False)],
-    thickness: Annotated[float, Field(gt=0, allow_inf_nan=False)],
-    material: MaterialDefinition,
     analysis: SignatureCurveAnalysis,
+    depth: Annotated[float, Field(gt=0, allow_inf_nan=False)] = _DEFAULT_DEPTH,
+    flange: Annotated[float, Field(gt=0, allow_inf_nan=False)] = _DEFAULT_FLANGE,
+    lip: Annotated[float, Field(gt=0, allow_inf_nan=False)] = _DEFAULT_LIP,
+    thickness: Annotated[float, Field(gt=0, allow_inf_nan=False)] = _DEFAULT_THICKNESS,
+    material: MaterialDefinition | None = None,
     max_segment_length: Annotated[float | None, Field(gt=0, allow_inf_nan=False)] = None,
     metadata: StudyMetadata | None = None,
     units: UnitDefinition | None = None,
@@ -390,8 +425,9 @@ def analyze_lipped_channel(
 ) -> dict[str, Any]:
     """Analyze a parametric lipped channel using the webapp's geometry fields.
 
-    Geometry and material are required because the canonical input schema has
-    no defaults for them. Only explicit canonical schema defaults are applied.
+    Geometry and material fall back to MCP-convenience defaults (a typical
+    mm/MPa cold-formed-steel lipped channel) when omitted; these are not
+    canonical schema defaults, so any of them can still be overridden.
     """
 
     return _tool_call(
@@ -399,7 +435,7 @@ def analyze_lipped_channel(
             SectionDefinition(
                 version="1.0",
                 metadata=metadata,
-                units=units,
+                units=units if units is not None else UnitDefinition(),
                 geometry=SectionGeometry(
                     section_type="lipped-channel",
                     depth=depth,
@@ -408,7 +444,7 @@ def analyze_lipped_channel(
                     thickness=thickness,
                     max_segment_length=max_segment_length,
                 ),
-                material=material,
+                material=material if material is not None else MaterialDefinition(),
             ),
             loading,
             analysis,
@@ -427,6 +463,10 @@ def analyze_section(
     ``section.geometry`` is converted by the repository's public
     ``build_section_model`` template; callers do not provide node/element
     matrices. Loading and analysis map directly to the canonical JSON blocks.
+    Omitted ``section.geometry``/``section.material`` fields fall back to
+    MCP-convenience defaults (a typical mm/MPa cold-formed-steel lipped
+    channel); these are not canonical schema defaults, so any of them can
+    still be overridden.
     """
 
     return _tool_call(
@@ -448,7 +488,11 @@ def signature_curve(
 
     This follows the checked-in workflow: parametric section template to JSON,
     ``octave-cli``/``cufsm_json.m``, then structured CUFSM results. It does not
-    accept raw matrices, centerline arrays, or executable code.
+    accept raw matrices, centerline arrays, or executable code. Omitted
+    ``section.geometry``/``section.material`` fields fall back to
+    MCP-convenience defaults (a typical mm/MPa cold-formed-steel lipped
+    channel); these are not canonical schema defaults, so any of them can
+    still be overridden.
     """
 
     return _tool_call(
