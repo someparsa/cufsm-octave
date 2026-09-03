@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import io
 import json
 import multiprocessing
 import os
@@ -14,6 +15,7 @@ from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from mcp.server import MCPServer
+from mcp.server.mcpserver import Image
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp_types import ToolAnnotations
@@ -34,6 +36,7 @@ from cufsm_octave import (  # noqa: E402
     run_cufsm,
     write_input,
 )
+from cufsm_octave.plotting import plot_signature_curve as _render_signature_curve_axes  # noqa: E402
 
 
 BoundaryCondition = Literal["S-S", "C-C", "S-C", "C-F", "C-G"]
@@ -105,6 +108,14 @@ _DEFAULT_BOUNDARY_CONDITION: BoundaryCondition = "S-S"
 _DEFAULT_LENGTHS_TYPE = "logspace"
 _DEFAULT_LENGTHS_MIN = 10.0
 _DEFAULT_LENGTHS_MAX = 10000.0
+# NOT defaulted to a nonzero member length (e.g. 2500.0): helpers/cufsm_json_run.m's
+# build_requested_mode_participation indexes clas{length_index}(mode_number,:) up to
+# size(curve{length_index},1), but the two can have different row counts whenever
+# eigenmodes (default 20) exceeds the modes the classifier actually resolves at that
+# length -- an "out of bound" Octave error for most real sections. That helper is
+# frozen/out of MCP scope, so member_lengths stays at the canonical empty default
+# (the buggy code path only runs when it's non-empty); callers can still set it
+# explicitly, but should pair a nonzero value with a lower eigenmodes to avoid this.
 _DEFAULT_LENGTHS_COUNT = 60
 
 _DEFAULT_SPRINGS = _canonical_default("properties", "model", "properties", "springs")
@@ -117,7 +128,6 @@ _DEFAULT_DOUBLER = _canonical_default(
 _DEFAULT_UNSYMMETRIC = _canonical_default(
     "$defs", "generatedActionLoading", "properties", "unsymmetric"
 )
-_DEFAULT_MEMBER_LENGTHS = _canonical_default("$defs", "memberLengths")
 _CANONICAL_CONST_VALUES = _canonical_keyword_values("const")
 
 FAMILY_NAMES = {0: "unknown", 1: "global", 2: "distortional", 3: "local", 4: "other"}
@@ -323,8 +333,8 @@ class GeneratedLengths(BaseModel):
     max: float = Field(gt=0, allow_inf_nan=False)
     count: int = Field(ge=1)
     member_lengths: list[Annotated[float, Field(gt=0, allow_inf_nan=False)]] = Field(
-        default_factory=lambda: deepcopy(_DEFAULT_MEMBER_LENGTHS),
-        json_schema_extra={"default": deepcopy(_DEFAULT_MEMBER_LENGTHS)},
+        default_factory=list,
+        json_schema_extra={"default": []},
     )
 
 
@@ -336,8 +346,8 @@ class ExplicitLengths(BaseModel):
     type: Literal["explicit"]
     values: list[Annotated[float, Field(gt=0, allow_inf_nan=False)]] = Field(min_length=1)
     member_lengths: list[Annotated[float, Field(gt=0, allow_inf_nan=False)]] = Field(
-        default_factory=lambda: deepcopy(_DEFAULT_MEMBER_LENGTHS),
-        json_schema_extra={"default": deepcopy(_DEFAULT_MEMBER_LENGTHS)},
+        default_factory=list,
+        json_schema_extra={"default": []},
     )
 
 
@@ -463,11 +473,11 @@ def analyze_lipped_channel(
 ) -> dict[str, Any]:
     """Analyze a parametric lipped channel using the webapp's geometry fields.
 
-    Geometry, material, and analysis fall back to MCP-convenience defaults (a
-    typical mm/MPa cold-formed-steel lipped channel and an S-S signature-curve
-    sweep) when omitted; these are not canonical schema defaults, so any of
-    them can still be overridden. This is the only tool that runs with no
-    arguments at all.
+    Geometry, material, loading, and analysis fall back to MCP-convenience
+    defaults (a typical mm/MPa cold-formed-steel lipped channel, fy=350 under
+    pure axial compression, and an S-S signature-curve sweep) when omitted;
+    these are not canonical schema defaults, so any of them can still be
+    overridden. This is the only tool that runs with no arguments at all.
     """
 
     return _tool_call(
@@ -486,7 +496,7 @@ def analyze_lipped_channel(
                 ),
                 material=material if material is not None else MaterialDefinition(),
             ),
-            loading,
+            loading if loading is not None else LoadingDefinition(),
             analysis if analysis is not None else SignatureCurveAnalysis(),
         )
     )
@@ -503,17 +513,18 @@ def analyze_section(
     ``section.geometry`` is converted by the repository's public
     ``build_section_model`` template; callers do not provide node/element
     matrices. Loading and analysis map directly to the canonical JSON blocks.
-    Omitted ``section``/``analysis`` fields (and their nested
-    ``geometry``/``material``/``boundary_condition``/``lengths`` fields) fall
-    back to MCP-convenience defaults (a typical mm/MPa cold-formed-steel
-    lipped channel and an S-S signature-curve sweep); these are not canonical
-    schema defaults, so any of them can still be overridden.
+    Omitted ``section``/``loading``/``analysis`` fields (and their nested
+    ``geometry``/``material``/``fy``/``boundary_condition``/``lengths``
+    fields) fall back to MCP-convenience defaults (a typical mm/MPa
+    cold-formed-steel lipped channel, fy=350 under pure axial compression,
+    and an S-S signature-curve sweep); these are not canonical schema
+    defaults, so any of them can still be overridden.
     """
 
     return _tool_call(
         lambda: _execute_section(
             section if section is not None else SectionDefinition(),
-            loading,
+            loading if loading is not None else LoadingDefinition(),
             analysis if analysis is not None else SignatureCurveAnalysis(),
         )
     )
@@ -530,23 +541,224 @@ def signature_curve(
     This follows the checked-in workflow: parametric section template to JSON,
     ``octave-cli``/``cufsm_json.m``, then structured CUFSM results. It does not
     accept raw matrices, centerline arrays, or executable code. Omitted
-    ``section``/``analysis`` fields (and their nested
-    ``geometry``/``material``/``boundary_condition``/``lengths`` fields) fall
-    back to MCP-convenience defaults (a typical mm/MPa cold-formed-steel
-    lipped channel and an S-S signature-curve sweep); these are not canonical
-    schema defaults, so any of them can still be overridden.
+    ``section``/``loading``/``analysis`` fields (and their nested
+    ``geometry``/``material``/``fy``/``boundary_condition``/``lengths``
+    fields) fall back to MCP-convenience defaults (a typical mm/MPa
+    cold-formed-steel lipped channel, fy=350 under pure axial compression,
+    and an S-S signature-curve sweep); these are not canonical schema
+    defaults, so any of them can still be overridden.
     """
 
     return _tool_call(
         lambda: _execute_section(
             section if section is not None else SectionDefinition(),
-            loading,
+            loading if loading is not None else LoadingDefinition(),
             analysis if analysis is not None else SignatureCurveAnalysis(),
         )
     )
 
 
-def _tool_call(operation: Any) -> dict[str, Any]:
+@server.tool(annotations=READ_ONLY_TOOL)
+def plot_cross_section(section: SectionDefinition | None = None) -> Image:
+    """Render the generated parametric section as a labeled node/element sketch.
+
+    This only builds the geometry (via ``build_section_model``); it does not
+    run the CUFSM/Octave solver, so ``loading`` and ``analysis`` are not
+    accepted. Omitted ``section.geometry``/``section.material`` fields fall
+    back to the same MCP-convenience defaults as the other tools.
+    """
+
+    return _tool_call(
+        lambda: _cross_section_image(
+            _build_geometry_model(section if section is not None else SectionDefinition())
+        )
+    )
+
+
+@server.tool(annotations=READ_ONLY_TOOL)
+def plot_signature_curve(
+    section: SectionDefinition | None = None,
+    analysis: SignatureCurveAnalysis | None = None,
+    loading: LoadingDefinition | None = None,
+) -> Image:
+    """Run the signature-curve analysis and render it as a PNG plot.
+
+    Load factor vs. length, with the overall minimum and each detected
+    family minimum (global/distortional/local/other) marked. Accepts the
+    same ``section``/``loading``/``analysis`` inputs as
+    ``signature_curve``/``analyze_section``, with the same MCP-convenience
+    defaults for anything omitted (including a pure-axial-compression
+    ``loading``, needed for the plotted load factors to be meaningful).
+    """
+
+    return _tool_call(
+        lambda: _signature_curve_image(
+            _run_full_analysis(
+                section if section is not None else SectionDefinition(),
+                loading if loading is not None else LoadingDefinition(),
+                analysis if analysis is not None else SignatureCurveAnalysis(),
+            )
+        )
+    )
+
+
+@server.tool(annotations=READ_ONLY_TOOL)
+def plot_mode_participation(
+    section: SectionDefinition | None = None,
+    analysis: SignatureCurveAnalysis | None = None,
+    loading: LoadingDefinition | None = None,
+) -> Image:
+    """Run the signature-curve analysis and render mode-family participation.
+
+    A stacked-area PNG of global/distortional/local/other participation (%)
+    at the lowest mode, across the full analyzed length sweep. Accepts the
+    same ``section``/``loading``/``analysis`` inputs as
+    ``signature_curve``/``analyze_section``, with the same MCP-convenience
+    defaults for anything omitted (the applied ``loading`` shape affects
+    which mode families are excited, not just the load-factor scale).
+    """
+
+    return _tool_call(
+        lambda: _mode_participation_image(
+            _run_full_analysis(
+                section if section is not None else SectionDefinition(),
+                loading if loading is not None else LoadingDefinition(),
+                analysis if analysis is not None else SignatureCurveAnalysis(),
+            )
+        )
+    )
+
+
+def _configure_matplotlib() -> Any:
+    """Import matplotlib with a non-interactive backend and return ``pyplot``."""
+
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg", force=True)
+        matplotlib.rcParams["figure.max_open_warning"] = 0
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise ValueError(
+            "matplotlib is required for this tool; install it via mcp/requirements.txt "
+            "(matplotlib>=3)."
+        ) from exc
+    return plt
+
+
+def _figure_to_image(fig: Any) -> Image:
+    plt = _configure_matplotlib()
+    buffer = io.BytesIO()
+    fig.tight_layout()
+    fig.savefig(buffer, format="png", dpi=150)
+    plt.close(fig)
+    return Image(data=buffer.getvalue(), format="png")
+
+
+def _cross_section_image(model: dict[str, Any]) -> Image:
+    plt = _configure_matplotlib()
+
+    node_lookup: dict[int, tuple[float, float]] = {}
+    for node in model.get("nodes", []):
+        node_lookup[int(node["id"])] = (float(node["x"]), float(node["z"]))
+    if len(node_lookup) < 2:
+        raise ValueError("The generated section has too few nodes to plot.")
+
+    fig, ax = plt.subplots(figsize=(6.4, 4.6))
+    for element in model.get("elements", []):
+        start = node_lookup[int(element["node_i"])]
+        end = node_lookup[int(element["node_j"])]
+        ax.plot([start[0], end[0]], [start[1], end[1]], color="#0f766e", linewidth=2.2)
+    xs = [point[0] for point in node_lookup.values()]
+    zs = [point[1] for point in node_lookup.values()]
+    ax.scatter(xs, zs, s=22, color="#17324a", zorder=3)
+    for node_id, (x_value, z_value) in node_lookup.items():
+        ax.annotate(
+            str(node_id),
+            (x_value, z_value),
+            textcoords="offset points",
+            xytext=(4, 4),
+            fontsize=8,
+        )
+    width = max(xs) - min(xs)
+    depth = max(zs) - min(zs)
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_xlabel("x")
+    ax.set_ylabel("z")
+    ax.set_title(f"Cross-section mesh | width={width:.6g}, depth={depth:.6g}")
+    ax.grid(True, linewidth=0.35, alpha=0.35)
+    return _figure_to_image(fig)
+
+
+def _signature_curve_image(result: CufsmResult) -> Image:
+    plt = _configure_matplotlib()
+
+    fig, ax = plt.subplots(figsize=(8.5, 4.8))
+    _render_signature_curve_axes(result, ax=ax, title="CUFSM Signature Curve")
+    return _figure_to_image(fig)
+
+
+def _mode_participation_image(result: CufsmResult) -> Image:
+    plt = _configure_matplotlib()
+
+    columns = list(result.mode_participation.get("table_columns", []))
+    rows = result.mode_participation.get("lowest_modes", [])
+    if not rows or not columns:
+        raise ValueError("result does not contain mode-participation data.")
+
+    def column_index(name: str) -> int | None:
+        return columns.index(name) if name in columns else None
+
+    length_index = column_index("length")
+    if length_index is None:
+        raise ValueError("mode-participation table has no length column.")
+    family_indices = {
+        "Global": column_index("global_percent"),
+        "Distortional": column_index("distortional_percent"),
+        "Local": column_index("local_percent"),
+        "Other": column_index("other_percent"),
+    }
+    lengths = [row[length_index] for row in rows if row[length_index] is not None]
+
+    def extract(idx: int | None) -> list[float]:
+        if idx is None:
+            return [0.0] * len(lengths)
+        values = [
+            float(row[idx]) if row[idx] is not None else 0.0
+            for row in rows
+            if row[length_index] is not None
+        ]
+        if values and max(abs(value) for value in values) <= 1.01:
+            values = [value * 100.0 for value in values]
+        return values
+
+    colors = {
+        "Global": "#2563eb",
+        "Distortional": "#d97706",
+        "Local": "#7c3aed",
+        "Other": "#64748b",
+    }
+    series = {name: extract(idx) for name, idx in family_indices.items()}
+
+    fig, ax = plt.subplots(figsize=(8.5, 4.2))
+    ax.stackplot(
+        lengths,
+        *series.values(),
+        labels=list(series.keys()),
+        colors=[colors[name] for name in series],
+        alpha=0.85,
+    )
+    ax.set_xscale("log")
+    ax.set_xlabel("Half-wavelength")
+    ax.set_ylabel("Mode participation (%)")
+    ax.set_ylim(0, 100)
+    ax.set_title("Mode Family Participation")
+    ax.grid(True, which="both", linewidth=0.35, alpha=0.3)
+    ax.legend(loc="upper right")
+    return _figure_to_image(fig)
+
+
+def _tool_call(operation: Any) -> Any:
     try:
         return operation()
     except ToolError:
@@ -557,19 +769,18 @@ def _tool_call(operation: Any) -> dict[str, Any]:
         raise ToolError("CUFSM analysis failed unexpectedly; no result was produced.") from None
 
 
-def _execute_section(
-    section: SectionDefinition,
-    loading: LoadingDefinition | None,
-    analysis: SignatureCurveAnalysis,
-) -> dict[str, Any]:
+def _build_geometry_model(section: SectionDefinition) -> dict[str, Any]:
+    """Build the CUFSM node/element/material tables for one parametric section.
+
+    This is the geometry-only half of ``_build_analysis_data``: it runs no
+    CUFSM/Octave calculation, so it is also used directly by the
+    cross-section visualization tool.
+    """
+
     geometry = section.geometry
     lip = geometry.lip if geometry.section_type in {"lipped-channel", "sigma-section"} else 0.0
     material_record = section.material.model_dump()
-    loading_record = _loading_record(loading) if loading is not None else None
-    analysis_record = _analysis_record(analysis)
-    metadata = section.metadata.model_dump(exclude_none=True) if section.metadata else None
-
-    model = build_section_model(
+    return build_section_model(
         geometry.section_type,
         depth=geometry.depth,
         flange=geometry.flange,
@@ -578,8 +789,22 @@ def _execute_section(
         max_segment_length=geometry.max_segment_length,
         material=material_record,
     )
+
+
+def _build_analysis_data(
+    section: SectionDefinition,
+    loading: LoadingDefinition | None,
+    analysis: SignatureCurveAnalysis,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Build the canonical CUFSM JSON input, alongside the generated model."""
+
+    model = _build_geometry_model(section)
     model["springs"] = deepcopy(_DEFAULT_SPRINGS)
     model["constraints"] = deepcopy(_DEFAULT_CONSTRAINTS)
+    loading_record = _loading_record(loading) if loading is not None else None
+    analysis_record = _analysis_record(analysis)
+    metadata = section.metadata.model_dump(exclude_none=True) if section.metadata else None
+
     data: dict[str, Any] = {
         "version": section.version,
         "model": model,
@@ -594,9 +819,21 @@ def _execute_section(
     if loading_record is not None:
         data["loading"] = loading_record
 
+    return data, model
+
+
+def _execute_section(
+    section: SectionDefinition,
+    loading: LoadingDefinition | None,
+    analysis: SignatureCurveAnalysis,
+) -> dict[str, Any]:
+    geometry = section.geometry
+    lip = geometry.lip if geometry.section_type in {"lipped-channel", "sigma-section"} else 0.0
+    data, model = _build_analysis_data(section, loading, analysis)
+
     summary = {
         "version": section.version,
-        "metadata": metadata,
+        "metadata": data.get("metadata"),
         "units": data.get("units"),
         "geometry": {
             "section_type": geometry.section_type,
@@ -606,9 +843,9 @@ def _execute_section(
             "thickness": geometry.thickness,
             "max_segment_length": geometry.max_segment_length,
         },
-        "material": material_record,
-        "loading": loading_record,
-        "analysis": analysis_record,
+        "material": section.material.model_dump(),
+        "loading": data.get("loading"),
+        "analysis": data["analysis"],
         "generated_model": {
             "material_count": len(model.get("materials", [])),
             "node_count": len(model.get("nodes", [])),
@@ -618,6 +855,22 @@ def _execute_section(
         },
     }
     return _run_isolated(data, summary)
+
+
+def _run_full_analysis(
+    section: SectionDefinition,
+    loading: LoadingDefinition | None,
+    analysis: SignatureCurveAnalysis,
+) -> CufsmResult:
+    """Build the CUFSM JSON input and run it, returning the raw result.
+
+    Used by the visualization tools, which need the ``CufsmResult`` object
+    itself rather than the JSON-serializable summary ``_execute_section``
+    returns.
+    """
+
+    data, _model = _build_analysis_data(section, loading, analysis)
+    return _run_isolated_result(data)
 
 
 def _loading_record(loading: LoadingDefinition) -> dict[str, Any]:
@@ -677,6 +930,11 @@ def _analysis_record(analysis: SignatureCurveAnalysis) -> dict[str, Any]:
 
 
 def _run_isolated(data: dict[str, Any], summary: dict[str, Any]) -> dict[str, Any]:
+    result = _run_isolated_result(data)
+    return _format_result(result, summary)
+
+
+def _run_isolated_result(data: dict[str, Any]) -> CufsmResult:
     timeout_seconds = _calculation_timeout()
     with tempfile.TemporaryDirectory(prefix="cufsm-") as temporary_directory:
         job_directory = Path(temporary_directory)
@@ -725,8 +983,7 @@ def _run_isolated(data: dict[str, Any], summary: dict[str, Any]) -> dict[str, An
         if not result_path.is_file():
             raise ToolError("CUFSM completed without creating its JSON result.")
 
-        result = CufsmResult.from_file(result_path)
-        return _format_result(result, summary)
+        return CufsmResult.from_file(result_path)
 
 
 def _create_read_only_code_view(job_directory: Path) -> None:
@@ -1094,7 +1351,14 @@ def _inline_local_schema_refs(schema: dict[str, Any]) -> dict[str, Any]:
 
 
 def _publish_inspector_friendly_schemas() -> None:
-    for tool_name in ("analyze_lipped_channel", "analyze_section", "signature_curve"):
+    for tool_name in (
+        "analyze_lipped_channel",
+        "analyze_section",
+        "signature_curve",
+        "plot_cross_section",
+        "plot_signature_curve",
+        "plot_mode_participation",
+    ):
         tool = server._tool_manager.get_tool(tool_name)
         if tool is None:
             raise RuntimeError(f"MCP tool registration missing: {tool_name}")

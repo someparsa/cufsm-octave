@@ -61,6 +61,31 @@ analysis type. The separate name makes an explicit signature-curve request
 clear to an MCP client while retaining the general analysis entry point for
 future repo-supported analysis types.
 
+### `plot_cross_section`, `plot_signature_curve`, `plot_mode_participation`
+
+Static PNG visualizations, ported from the checked-in `cufsm-web` branch's
+matplotlib/Plotly result plots (Plotly is interactive-only, so its chart —
+mode-family participation — was rewritten as a static matplotlib stacked-area
+plot here). Each returns an MCP image content block, not JSON.
+
+| Tool | Shows | Runs CUFSM? |
+| --- | --- | --- |
+| `plot_cross_section` | The generated section's node/element mesh, labeled by node id | No — geometry only |
+| `plot_signature_curve` | Load factor vs. length, with the overall and each family minimum marked | Yes |
+| `plot_mode_participation` | Stacked-area global/distortional/local/other participation (%) vs. length | Yes |
+
+`plot_cross_section` takes only `section` (no `loading`/`analysis` — it never
+runs the solver). `plot_signature_curve` and `plot_mode_participation` take
+the same `section`/`loading`/`analysis` inputs as `analyze_section`, with the
+same MCP-convenience defaults. A meaningful `loading` matters more here than
+for the JSON tools: without a reference load, every load factor is `null`
+and these plots would be visually empty, so `loading` also defaults to a
+full pure-axial-compression reference (see Defaults below) rather than being
+left unset.
+
+These tools require `matplotlib` (`mcp/requirements.txt`); a missing install
+raises a normal `ToolError`, not an unhandled exception.
+
 ## Interface source of truth
 
 The MCP fields are translations of existing repository interfaces, not a
@@ -155,6 +180,16 @@ now fills those specific fields with a typical mm/MPa cold-formed-steel
 lipped channel so a call can omit them entirely. These are not schema values
 — every one of them can still be overridden per call.
 
+`loading` itself now also defaults as a whole (not just the `fy`/`actions`
+fields it contains): omitting it no longer means "no reference load". It
+used to fall through to CUFSM's `stress_table` loading with every node at
+zero stress, which makes every `load_factor` in the result `null` and the
+`plot_signature_curve`/`plot_mode_participation` charts empty — not obviously
+broken, just quietly meaningless. There is currently no way to request that
+zero-stress mode through these tools: an explicit `"loading": null` is
+indistinguishable from omission and also resolves to the default reference
+load.
+
 | MCP path | Default value |
 | --- | --- |
 | `section.units.system` | `"mm_MPa"` |
@@ -179,14 +214,28 @@ present but missing `type` (for example, a caller that only set
 `member_lengths`) is repaired the same way rather than rejected with a
 discriminator error.
 
-Consequently, all three tools now accept `{}` (or no arguments at all, for
-`analyze_lipped_channel`/`analyze_section`/`signature_curve`), running the
-full MCP-convenience default study end to end. Every field shown above can
-still be overridden per call.
+`analysis.lengths.member_lengths` (the actual physical length(s) to report
+detailed mode participation at, as opposed to the swept range above) is
+deliberately **not** given a nonzero MCP-convenience default; it stays at the
+canonical `[]`. Setting it activates `helpers/cufsm_json_run.m`'s
+`build_requested_mode_participation`, which has a pre-existing indexing bug
+(out of this MCP's scope to fix): it can index past the end of the mode
+classification table whenever `analysis.eigenmodes` (default `20`) exceeds
+the number of modes actually resolved at the matched length — an Octave
+`out of bound` error, for most real sections, not just specific lengths. If
+you set `member_lengths` yourself, pair it with a lower `eigenmodes` (single
+digits are usually safe) to avoid this.
+
+Consequently, all six tools now accept `{}` (or no arguments at all, for
+`analyze_lipped_channel`/`analyze_section`/`signature_curve`/
+`plot_cross_section`/`plot_signature_curve`/`plot_mode_participation`),
+running the full MCP-convenience default study end to end. Every field shown
+above can still be overridden per call.
 
 ## Results
 
-All three tools return a structured object containing:
+`analyze_lipped_channel`, `analyze_section`, and `signature_curve` return a
+structured object containing:
 
 - `model_summary`, including study, units, geometry, material, loading,
   analysis, and generated table counts;
@@ -202,6 +251,10 @@ All three tools return a structured object containing:
 Load factors are dimensionless multipliers on the supplied reference loading.
 An absent family minimum is reported as `null`; the server does not invent a
 minimum when CUFSM did not detect one in the analyzed range.
+
+`plot_cross_section`, `plot_signature_curve`, and `plot_mode_participation`
+return a single MCP image content block (PNG) instead — see the tool
+descriptions above.
 
 ## Local installation and startup
 
@@ -332,20 +385,20 @@ arguments, omit `section` and `section_type`, and keep the same `material`,
 
 ### Minimum call using MCP-convenience defaults
 
-All three tools now accept `{}` (or, for `analyze_lipped_channel`,
-`analyze_section`, and `signature_curve` called with no arguments at all).
-Geometry, units, material, loading (a pure axial-compression reference load),
-and analysis (an S-S signature-curve sweep) all resolve to the
-MCP-convenience defaults documented above, so this is a valid, complete call
-for every tool:
+All six tools now accept `{}`, or no arguments at all. Geometry, units,
+material, loading (a pure axial-compression reference load), and analysis
+(an S-S signature-curve sweep) all resolve to the MCP-convenience defaults
+documented above, so this is a valid, complete call for every tool:
 
 ```json
 {}
 ```
 
-For `analyze_section`/`signature_curve`, `{"section": {}}` and
-`{"analysis": {}}` behave the same way — only the fields present in each
-object are overridden, everything else falls back to its default.
+For `analyze_section`/`signature_curve`/`plot_signature_curve`/
+`plot_mode_participation`, `{"section": {}}` and `{"analysis": {}}` behave
+the same way — only the fields present in each object are overridden,
+everything else falls back to its default. `plot_cross_section` only takes
+`section`.
 
 ### Partial overrides
 
