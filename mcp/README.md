@@ -169,15 +169,20 @@ lipped channel so a call can omit them entirely. These are not schema values
 | `section.material.G` | `76923.08` (`Ex / (2 * (1 + nu_x))`) |
 | `loading.fy` | `350.0` |
 | `loading.actions.P_factor` | `1.0` (pure axial compression; all other actions default to `0`) |
+| `analysis.boundary_condition` | `"S-S"` |
+| `analysis.lengths` | `{"type": "logspace", "min": 10.0, "max": 10000.0, "count": 60}` |
 
-`analysis.boundary_condition` and `analysis.lengths` remain required with no
-default: the length sweep and boundary condition are study-specific choices
-that don't have a universally reasonable default, unlike geometry/material.
+`analysis.boundary_condition` and `analysis.lengths` are study-specific
+choices with no universally correct value, so treat these two as a starting
+point to override, not as engineering guidance. A `lengths` object that is
+present but missing `type` (for example, a caller that only set
+`member_lengths`) is repaired the same way rather than rejected with a
+discriminator error.
 
-Consequently, `{}` is still not a valid `analyze_section`/`signature_curve`
-call — `analysis` must still be supplied — but `analyze_lipped_channel` now
-only strictly requires `analysis`; every geometry, material, unit, and
-loading field is optional.
+Consequently, all three tools now accept `{}` (or no arguments at all, for
+`analyze_lipped_channel`/`analyze_section`/`signature_curve`), running the
+full MCP-convenience default study end to end. Every field shown above can
+still be overridden per call.
 
 ## Results
 
@@ -327,39 +332,29 @@ arguments, omit `section` and `section_type`, and keep the same `material`,
 
 ### Minimum call using MCP-convenience defaults
 
-`analyze_lipped_channel` is the only tool where `section`/`loading` are not
-required at all. This call supplies only the study-specific `analysis`
-definition; geometry, units, material, and loading (a pure axial-compression
-reference load) all resolve to the MCP-convenience defaults documented above.
+All three tools now accept `{}` (or, for `analyze_lipped_channel`,
+`analyze_section`, and `signature_curve` called with no arguments at all).
+Geometry, units, material, loading (a pure axial-compression reference load),
+and analysis (an S-S signature-curve sweep) all resolve to the
+MCP-convenience defaults documented above, so this is a valid, complete call
+for every tool:
 
 ```json
-{
-  "analysis": {
-    "type": "signature_curve",
-    "boundary_condition": "S-S",
-    "lengths": {
-      "type": "logspace",
-      "min": 10.0,
-      "max": 10000.0,
-      "count": 60
-    }
-  }
-}
+{}
 ```
 
-`analyze_section` and `signature_curve` still require a `section` argument,
-but its `geometry` and `material` objects may each be partial or `{}` — any
-field they omit resolves the same way.
+For `analyze_section`/`signature_curve`, `{"section": {}}` and
+`{"analysis": {}}` behave the same way — only the fields present in each
+object are overridden, everything else falls back to its default.
 
 ### Partial overrides
 
 Fields having canonical or MCP-convenience defaults may be omitted. MCP is
-stateless, so a request must still contain every field with no default
-(`analysis.boundary_condition`, `analysis.lengths`, and, for `analyze_section`
-/`signature_curve`, the `section` argument itself). To test a partial
-engineering change, reuse the minimum request above and change only one value,
-for example `section.geometry.thickness` from `0.1` to `0.12`. The effective
-input retains `unsymmetric = false`, `member_lengths = []`, `eigenmodes = 20`,
+stateless, so a request must still contain every non-default value you want
+to change. To test a partial engineering change, reuse the minimum request
+above and change only one value, for example `section.geometry.thickness`
+from `0.1` to `0.12`. The effective input retains `unsymmetric = false`,
+`member_lengths = []`, `eigenmodes = 20`,
 `vectorized = false`, and `doubler = false` from the schema. The complete
 checked examples below are directly pasteable.
 

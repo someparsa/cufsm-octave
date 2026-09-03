@@ -101,6 +101,11 @@ _DEFAULT_NU_Y = 0.3
 _DEFAULT_G = _DEFAULT_EX / (2 * (1 + _DEFAULT_NU_X))
 _DEFAULT_FY = 350.0
 _DEFAULT_P_FACTOR = 1.0
+_DEFAULT_BOUNDARY_CONDITION: BoundaryCondition = "S-S"
+_DEFAULT_LENGTHS_TYPE = "logspace"
+_DEFAULT_LENGTHS_MIN = 10.0
+_DEFAULT_LENGTHS_MAX = 10000.0
+_DEFAULT_LENGTHS_COUNT = 60
 
 _DEFAULT_SPRINGS = _canonical_default("properties", "model", "properties", "springs")
 _DEFAULT_CONSTRAINTS = _canonical_default("properties", "model", "properties", "constraints")
@@ -391,13 +396,46 @@ class SignatureCurveAnalysis(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     type: Literal["signature_curve"] = "signature_curve"
-    boundary_condition: BoundaryCondition
-    lengths: LengthDefinition
+    boundary_condition: BoundaryCondition = _DEFAULT_BOUNDARY_CONDITION
+    lengths: LengthDefinition = Field(
+        default_factory=lambda: GeneratedLengths(
+            type=_DEFAULT_LENGTHS_TYPE,
+            min=_DEFAULT_LENGTHS_MIN,
+            max=_DEFAULT_LENGTHS_MAX,
+            count=_DEFAULT_LENGTHS_COUNT,
+        )
+    )
     longitudinal_terms: LongitudinalTerms | None = None
     eigenmodes: int = Field(default=int(_DEFAULT_EIGENMODES), ge=1)
     vectorized: bool = bool(_DEFAULT_VECTORIZED)
     mesh_refinement: MeshRefinement | None = None
     cfsm: CfsmDefinition | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _fill_partial_lengths(cls, data: Any) -> Any:
+        """Repair a ``lengths`` object missing its discriminator/range.
+
+        A caller (or an LLM tool-caller) may supply ``lengths`` with only the
+        ``member_lengths`` leaf populated, omitting ``type``/``min``/``max``/
+        ``count`` because those have no leaf-level default to copy from. Fill
+        the missing pieces with the MCP-convenience length sweep instead of
+        failing the discriminated union with a missing-tag error.
+        """
+
+        if not isinstance(data, dict):
+            return data
+        lengths = data.get("lengths")
+        if isinstance(lengths, dict) and "type" not in lengths:
+            data = dict(data)
+            data["lengths"] = {
+                "type": _DEFAULT_LENGTHS_TYPE,
+                "min": _DEFAULT_LENGTHS_MIN,
+                "max": _DEFAULT_LENGTHS_MAX,
+                "count": _DEFAULT_LENGTHS_COUNT,
+                **lengths,
+            }
+        return data
 
 
 server = MCPServer(
@@ -412,12 +450,12 @@ server = MCPServer(
 
 @server.tool(annotations=READ_ONLY_TOOL)
 def analyze_lipped_channel(
-    analysis: SignatureCurveAnalysis,
     depth: Annotated[float, Field(gt=0, allow_inf_nan=False)] = _DEFAULT_DEPTH,
     flange: Annotated[float, Field(gt=0, allow_inf_nan=False)] = _DEFAULT_FLANGE,
     lip: Annotated[float, Field(gt=0, allow_inf_nan=False)] = _DEFAULT_LIP,
     thickness: Annotated[float, Field(gt=0, allow_inf_nan=False)] = _DEFAULT_THICKNESS,
     material: MaterialDefinition | None = None,
+    analysis: SignatureCurveAnalysis | None = None,
     max_segment_length: Annotated[float | None, Field(gt=0, allow_inf_nan=False)] = None,
     metadata: StudyMetadata | None = None,
     units: UnitDefinition | None = None,
@@ -425,9 +463,11 @@ def analyze_lipped_channel(
 ) -> dict[str, Any]:
     """Analyze a parametric lipped channel using the webapp's geometry fields.
 
-    Geometry and material fall back to MCP-convenience defaults (a typical
-    mm/MPa cold-formed-steel lipped channel) when omitted; these are not
-    canonical schema defaults, so any of them can still be overridden.
+    Geometry, material, and analysis fall back to MCP-convenience defaults (a
+    typical mm/MPa cold-formed-steel lipped channel and an S-S signature-curve
+    sweep) when omitted; these are not canonical schema defaults, so any of
+    them can still be overridden. This is the only tool that runs with no
+    arguments at all.
     """
 
     return _tool_call(
@@ -447,15 +487,15 @@ def analyze_lipped_channel(
                 material=material if material is not None else MaterialDefinition(),
             ),
             loading,
-            analysis,
+            analysis if analysis is not None else SignatureCurveAnalysis(),
         )
     )
 
 
 @server.tool(annotations=READ_ONLY_TOOL)
 def analyze_section(
-    section: SectionDefinition,
-    analysis: SignatureCurveAnalysis,
+    section: SectionDefinition | None = None,
+    analysis: SignatureCurveAnalysis | None = None,
     loading: LoadingDefinition | None = None,
 ) -> dict[str, Any]:
     """Analyze a webapp-style parametric section with the existing CUFSM solver.
@@ -463,25 +503,26 @@ def analyze_section(
     ``section.geometry`` is converted by the repository's public
     ``build_section_model`` template; callers do not provide node/element
     matrices. Loading and analysis map directly to the canonical JSON blocks.
-    Omitted ``section.geometry``/``section.material`` fields fall back to
-    MCP-convenience defaults (a typical mm/MPa cold-formed-steel lipped
-    channel); these are not canonical schema defaults, so any of them can
-    still be overridden.
+    Omitted ``section``/``analysis`` fields (and their nested
+    ``geometry``/``material``/``boundary_condition``/``lengths`` fields) fall
+    back to MCP-convenience defaults (a typical mm/MPa cold-formed-steel
+    lipped channel and an S-S signature-curve sweep); these are not canonical
+    schema defaults, so any of them can still be overridden.
     """
 
     return _tool_call(
         lambda: _execute_section(
-            section,
+            section if section is not None else SectionDefinition(),
             loading,
-            analysis,
+            analysis if analysis is not None else SignatureCurveAnalysis(),
         )
     )
 
 
 @server.tool(annotations=READ_ONLY_TOOL)
 def signature_curve(
-    section: SectionDefinition,
-    analysis: SignatureCurveAnalysis,
+    section: SectionDefinition | None = None,
+    analysis: SignatureCurveAnalysis | None = None,
     loading: LoadingDefinition | None = None,
 ) -> dict[str, Any]:
     """Calculate a signature curve from the repo/webapp section definition.
@@ -489,17 +530,18 @@ def signature_curve(
     This follows the checked-in workflow: parametric section template to JSON,
     ``octave-cli``/``cufsm_json.m``, then structured CUFSM results. It does not
     accept raw matrices, centerline arrays, or executable code. Omitted
-    ``section.geometry``/``section.material`` fields fall back to
-    MCP-convenience defaults (a typical mm/MPa cold-formed-steel lipped
-    channel); these are not canonical schema defaults, so any of them can
-    still be overridden.
+    ``section``/``analysis`` fields (and their nested
+    ``geometry``/``material``/``boundary_condition``/``lengths`` fields) fall
+    back to MCP-convenience defaults (a typical mm/MPa cold-formed-steel
+    lipped channel and an S-S signature-curve sweep); these are not canonical
+    schema defaults, so any of them can still be overridden.
     """
 
     return _tool_call(
         lambda: _execute_section(
-            section,
+            section if section is not None else SectionDefinition(),
             loading,
-            analysis,
+            analysis if analysis is not None else SignatureCurveAnalysis(),
         )
     )
 
