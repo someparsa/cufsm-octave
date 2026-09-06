@@ -8,7 +8,7 @@
 
 **Octave-oriented adaptation by [Parsa Yazdi](https://www.linkedin.com/in/parsayazdi/)**
 
-CUFSM Octave CLI is a command-line-oriented adaptation of [CUFSM](https://github.com/thinwalled/cufsm-git), the constrained and unconstrained finite strip method software for elastic buckling analysis of thin-walled member cross-sections.
+CUFSM Octave CLI is a command-line- and MCP-oriented adaptation of [CUFSM](https://github.com/thinwalled/cufsm-git), the constrained and unconstrained finite strip method software for elastic buckling analysis of thin-walled member cross-sections.
 
 This repository adapts CUFSM numerical routines for headless execution with GNU Octave. The main workflow runs signature-curve analyses from JSON input files and writes machine-readable JSON results plus text reports.
 
@@ -16,7 +16,7 @@ For citation details, please use the repository’s citation file: [CITATION.cff
 
 ## Try the MCP (Beta)
 
-To test the hosted MCP integration, add a custom MCP server or plugin in an MCP-compatible client, name it `CUFSM-Octave`, and use `https://mcp.pysteel.com/mcp` as its URL. Import or scan the available tools, enable the plugin, and you can request CUFSM analyses and plots without installing the repository locally. This hosted MCP integration is in beta, so its availability and interface may change; verify important results independently before using them for engineering decisions.
+To test the hosted MCP integration, add a custom MCP server or plugin to an MCP-compatible client, name it `CUFSM-Octave`, and set its URL to `https://mcp.pysteel.com/mcp`. Import or scan the available tools, enable the plugin, and you can request CUFSM analyses and plots without installing the repository locally. This hosted MCP integration is in beta, so its availability and interface may change; verify important results independently before using them for engineering decisions.
 
 ## Current Capabilities
 
@@ -24,10 +24,8 @@ To test the hosted MCP integration, add a custom MCP server or plugin in an MCP-
 - Supports reproducible JSON input for model, loading, analysis, and output settings.
 - Includes Python helpers for generating JSON inputs from common section templates.
 - Includes Python post-processing helpers for reading result JSON and plotting signature curves.
-- Provides a beta hosted MCP interface for parametric section analysis and
-  static cross-section, signature-curve, and mode-participation plots.
-- Validates MCP inputs and runs each remote calculation in an isolated temporary
-  workspace with a configurable timeout.
+- Provides a beta hosted MCP interface for parametric section analysis and static cross-section, signature-curve, and mode-participation plots.
+- Validates MCP inputs and runs each remote calculation in an isolated temporary workspace with a configurable timeout.
 - Includes Python workflow examples for batch sweeps and simple grid-search optimisation.
 - Supports generated loading from reference actions or direct stress-table loading.
 - Inserts declared member lengths into the solved length set.
@@ -93,8 +91,7 @@ The JSON schema is tracked at [schema/input-v1.schema.json](schema/input-v1.sche
 
 ## Versioning
 
-This repository uses separate version identifiers for separate compatibility
-surfaces:
+This repository uses separate version identifiers for separate compatibility surfaces:
 
 | Version surface | Version | Meaning |
 | --- | --- | --- |
@@ -104,14 +101,9 @@ surfaces:
 | Python package | `0.2.0` | Version in `pyproject.toml`; this follows its own Python tooling release track. |
 | JSON input schema | `1.0` | Version of the JSON input contract used inside input files and the JSON schema. |
 
-For this release, `v2.5.66` means the second-generation CUFSM Octave
-interface/tooling release built around compatibility with CUFSM `5.66`. The
-Python package is versioned separately as `0.2.0`, and the JSON input schema
-remains `1.0` because the JSON contract has not been version-bumped.
+For this release, `v2.5.66` means the second-generation CUFSM Octave interface/tooling release built around compatibility with CUFSM `5.66`. The Python package is versioned separately as `0.2.0`, and the JSON input schema remains `1.0` because the JSON contract has not been version-bumped.
 
-The next planned release, `v3.5.66`, will introduce the third generation of
-the project tooling, with development centered on MCP servers while retaining
-compatibility with the CUFSM `5.66` numerical source.
+`v3.5.66` introduces the third generation of the project tooling, with development centered on MCP servers while retaining compatibility with the CUFSM `5.66` numerical source.
 
 ## JSON Workflow Summary
 
@@ -129,7 +121,7 @@ Key input sections:
 | --- | --- |
 | `model` | Materials, nodes, elements, springs, and constraints. |
 | `loading` | Stress-table loading or generated stresses from actions. |
-| `analysis` | Signature-curve settings, boundary condition, lengths, member lengths, eigenmodes, mesh refinement, and cFSM settings. |
+| `analysis` | Signature-curve settings, boundary conditions, lengths, member lengths, eigenmodes, mesh refinement, and cFSM settings. |
 | `output` | JSON and text output paths. |
 
 Mode-family participation uses numeric dominant-family codes:
@@ -148,7 +140,7 @@ Important output fields:
 | `signature_curve` | Lowest eigenvalue at each analyzed length. |
 | `critical_points.local_minima_classified` | Detected local minima with cFSM participation and dominant family. |
 | `critical_points.family_minima` | Lowest detected minimum for each dominant family that appears. |
-| `mode_participation.lowest_modes` | Lowest-mode participation at every analyzed length. |
+| `mode_participation.lowest_modes` | Lowest-mode participation at every analysed length. |
 | `mode_participation.member_lengths` | All solved eigenmodes at declared member lengths. |
 | `mode_participation.signature_minima` | All solved eigenmodes at detected signature-curve minima. |
 
@@ -192,7 +184,7 @@ Original CUFSM development and contributors are documented by the upstream proje
 - [Official CUFSM repository](https://github.com/thinwalled/cufsm-git)
 - [Official CUFSM releases](https://github.com/thinwalled/cufsm-git/releases)
 
-Users publishing research based on this software should cite the official CUFSM project and the relevant finite strip method literature identified by the upstream repository.
+Users publishing research based on this software should cite the official CUFSM project and the relevant finite-strip method literature identified in the upstream repository.
 
 ## License
 
