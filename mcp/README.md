@@ -655,27 +655,144 @@ The image contains Python, GNU Octave, this repository, and the MCP dependency.
    the curve and classified critical points.
 4. The LLM explains the critical mode and local/distortional/global behavior.
 
-## Future deployment (not performed here)
+## Production MCP
 
-### Public HTTPS on Contabo
+Public endpoint:
 
-Keep the Python process on localhost, place a maintained HTTPS reverse proxy in
-front of `/mcp`, configure DNS and TLS, set `MCP_ALLOWED_HOSTS` to the public
-hostname, add health/operational monitoring as appropriate, and review the risk
-of operating a deliberately unauthenticated public compute service. These
-steps require separate authorization and were not performed by this task.
+```text
+https://mcp.pysteel.com/mcp
+```
 
-### ChatGPT Developer Mode
+The production server runs on Contabo behind Caddy:
 
-After an HTTPS endpoint is reachable, enable Developer Mode for an eligible
-ChatGPT workspace/account, create a custom MCP app, enter the full
-`https://.../mcp` endpoint, choose no authentication for this public tool, scan
-the tools, and test the draft app. ChatGPT cannot connect directly to this
-localhost-only test instance.
+```text
+LLM client
+-> https://mcp.pysteel.com/mcp
+-> Caddy
+-> 127.0.0.1:8080
+-> cufsm-mcp.service
+-> GNU Octave / CUFSM
+```
 
-### Google Cloud Run
+### Update the server
 
-Build and publish `Dockerfile.mcp`, deploy it as a Cloud Run service, leave
-`PORT` under Cloud Run control, set `MCP_ALLOWED_HOSTS` to the service/custom
-domain, and configure an appropriate request timeout and concurrency. No Cloud
-Run resources are created by this repository.
+After pushing changes to GitHub:
+
+```bash
+cd /home/parsa/Projects/cufsm-octave
+git pull
+sudo systemctl restart cufsm-mcp
+sudo systemctl status cufsm-mcp --no-pager
+```
+
+If Python dependencies have changed:
+
+```bash
+.venv/bin/python -m pip install -r mcp/requirements.txt
+sudo systemctl restart cufsm-mcp
+```
+
+Check the deployed version:
+
+```bash
+git log -1 --oneline
+git rev-parse HEAD
+```
+
+View logs:
+
+```bash
+sudo journalctl -u cufsm-mcp -f
+```
+
+### Health check
+
+```bash
+curl -i \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"health-check","version":"1"}}}' \
+  https://mcp.pysteel.com/mcp
+```
+
+A healthy server should return `HTTP 200`.
+
+If tool names, parameters, defaults, or descriptions change, refresh/rescan the MCP tools in the LLM client.
+
+---
+
+## ChatGPT
+
+Enable Developer Mode and create a custom app using:
+
+```text
+Name: CUFSM Octave
+MCP endpoint: https://mcp.pysteel.com/mcp
+Authentication: None
+```
+
+Run **Scan Tools**, save the app, and enable it in a chat.
+
+Example:
+
+```text
+Use CUFSM Octave to analyse a 195 x 45 x 15 x 1.5 mm
+lipped channel under axial compression and plot the signature curve.
+```
+
+---
+
+## Claude
+
+Add a custom remote MCP connector:
+
+```text
+Name: CUFSM Octave
+Remote MCP URL: https://mcp.pysteel.com/mcp
+```
+
+Enable the connector in the conversation.
+
+---
+
+## Claude Code
+
+```bash
+claude mcp add \
+  --transport http \
+  cufsm-octave \
+  https://mcp.pysteel.com/mcp
+```
+
+Check the connection:
+
+```bash
+claude mcp list
+claude mcp get cufsm-octave
+```
+
+---
+
+## MCP Inspector
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+Connect with:
+
+```text
+Transport: Streamable HTTP
+URL: https://mcp.pysteel.com/mcp
+```
+
+---
+
+## Maintenance notes
+
+- `git push` does not update the running production server.
+- Run `git pull` on Contabo and restart `cufsm-mcp`.
+- Caddy normally does not need restarting after MCP code changes.
+- Keep the MCP process on `127.0.0.1:8080`; do not expose port `8080`.
+- Use `https://mcp.pysteel.com/mcp` for public clients.
+- Refresh client tool definitions when the MCP schema changes.
