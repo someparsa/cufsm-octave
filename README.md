@@ -98,8 +98,8 @@ surfaces:
 
 | Version surface | Version | Meaning |
 | --- | --- | --- |
-| Current project release | `v2.5.66` | CUFSM Octave CLI release version. The leading project number identifies this repository's interface/tooling generation. |
-| Next project release | `v3.5.66` | Planned third-generation release focused on MCP server support and integration. |
+| MCP Server Support release | `v3.5.66` | Third-generation release focused on MCP server support and integration. |
+| Main project release | `v2.5.66` | CUFSM Octave CLI release version. The leading project number identifies this repository's interface/tooling generation. |
 | CUFSM compatibility | `5.66` | Original CUFSM numerical source version that this project is compatible with or derived from. |
 | Python package | `0.2.0` | Version in `pyproject.toml`; this follows its own Python tooling release track. |
 | JSON input schema | `1.0` | Version of the JSON input contract used inside input files and the JSON schema. |
