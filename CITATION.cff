@@ -1,16 +1,16 @@
 cff-version: 1.2.0
 
 message: >
-  If you use CUFSM Octave CLI, please cite this software using the citation
+  If you use CUFSM Octave CLI-MCP, please cite this software using the citation
   information below. Because this project is an Octave-compatible,
   command-line-oriented adaptation of CUFSM, users should also cite the original
   CUFSM software, repository, and relevant finite strip method literature listed
   in the references.
 
-title: "CUFSM Octave CLI"
-version: "2.5.66"
+title: "CUFSM Octave CLI-MCP"
+version: "3.5.66"
 doi: "10.5281/zenodo.20635622"
-date-released: 2026-06-18
+date-released: 2026-09-07
 
 authors:
   - family-names: Yazdi
