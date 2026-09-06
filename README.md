@@ -14,12 +14,20 @@ This repository adapts CUFSM numerical routines for headless execution with GNU 
 
 For citation details, please use the repository’s citation file: [CITATION.cff](https://github.com/someparsa/cufsm-octave/blob/main/CITATION.cff), or cite the archived release as: Yazdi, P. (2026). *CUFSM Octave CLI*. Zenodo. [https://doi.org/10.5281/zenodo.20635622](https://doi.org/10.5281/zenodo.20635622)
 
+## Try the MCP (Beta)
+
+To test the hosted MCP integration, add a custom MCP server or plugin in an MCP-compatible client, name it `CUFSM-Octave`, and use `https://mcp.pysteel.com/mcp` as its URL. Import or scan the available tools, enable the plugin, and you can request CUFSM analyses and plots without installing the repository locally. This hosted MCP integration is in beta, so its availability and interface may change; verify important results independently before using them for engineering decisions.
+
 ## Current Capabilities
 
 - Runs CUFSM signature-curve analysis from `octave-cli`.
 - Supports reproducible JSON input for model, loading, analysis, and output settings.
 - Includes Python helpers for generating JSON inputs from common section templates.
 - Includes Python post-processing helpers for reading result JSON and plotting signature curves.
+- Provides a beta hosted MCP interface for parametric section analysis and
+  static cross-section, signature-curve, and mode-participation plots.
+- Validates MCP inputs and runs each remote calculation in an isolated temporary
+  workspace with a configurable timeout.
 - Includes Python workflow examples for batch sweeps and simple grid-search optimisation.
 - Supports generated loading from reference actions or direct stress-table loading.
 - Inserts declared member lengths into the solved length set.

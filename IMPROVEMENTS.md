@@ -44,6 +44,53 @@ Octave-based command-line workflow.
 - Replaced tutorial-style and GUI-oriented commentary with concise comments
   describing data schemas and engineering assumptions.
 
+## 2026-06-17 to 2026-06-18
+
+### JSON Runner
+
+- Added the versioned JSON input schema and the `cufsm_json.m` command-line
+  entry point.
+- Made geometry, material, loading, boundary conditions, length sweeps,
+  springs, constraints, eigenmodes, mesh refinement, and cFSM settings
+  configurable through JSON.
+- Added machine-readable JSON results and optional text reports with section
+  properties, signature curves, classified minima, and mode participation.
+- Added generated-action and direct stress-table loading workflows.
+
+### Python Integration
+
+- Added Python helpers for input validation, JSON generation, Octave execution,
+  result access, and optional signature-curve plotting.
+- Added parametric templates for unlipped and lipped channels, Z sections,
+  sigma sections, and stiffened-web channels.
+- Added batch-analysis, grid-search optimization, and result-post-processing
+  examples.
+- Added optional JSON Schema validation, pandas accessors, and matplotlib
+  plotting dependencies.
+
+## 2026-09-03 to 2026-09-07
+
+### MCP Interface
+
+- Added a beta hosted MCP interface that uses the existing Python, JSON, and
+  GNU Octave workflow rather than duplicating the solver.
+- Added validated parametric section inputs with usable defaults for analysis
+  and plotting requests.
+- Added structured analysis results and static cross-section, signature-curve,
+  and mode-participation plots.
+- Isolated each calculation in a temporary workspace and added configurable
+  timeouts and cleanup of worker processes.
+
+### Deployment And Maintenance
+
+- Added a container image definition containing Python, GNU Octave, and the
+  MCP runtime dependencies.
+- Documented safe server updates, dependency installation, service restarts,
+  health checks, end-to-end smoke tests, and rollback.
+- Replaced deployment-specific identifiers in the MCP maintenance guide with
+  reusable placeholders.
+- Added beta MCP connection instructions to the main README.
+
 ## Development Attribution
 
 The CLI-oriented changes documented here are developed by:
