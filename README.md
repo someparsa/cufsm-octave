@@ -3,6 +3,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20635622.svg)](https://doi.org/10.5281/zenodo.20635622)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Octave](https://img.shields.io/badge/GNU%20Octave-compatible-blue)
+
 ![MCP](https://img.shields.io/badge/MCP-hosted%20server%20(beta)-purple)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
 ![Status](https://img.shields.io/badge/status-development-orange)
