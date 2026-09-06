@@ -1,10 +1,9 @@
-# CUFSM Octave CLI
+# CUFSM Octave
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20635622.svg)](https://doi.org/10.5281/zenodo.20635622)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Octave](https://img.shields.io/badge/GNU%20Octave-compatible-blue)
-
-![MCP](https://img.shields.io/badge/MCP-hosted%20server%20(beta)-purple)
+![MCP](https://img.shields.io/badge/MCP-hosted%20server-purple)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
 ![Status](https://img.shields.io/badge/status-development-orange)
 
@@ -14,7 +13,7 @@ CUFSM Octave CLI is a command-line- and MCP-oriented adaptation of [CUFSM](https
 
 This repository adapts CUFSM numerical routines for headless execution with GNU Octave. The main workflow runs signature-curve analyses from JSON input files and writes machine-readable JSON results plus text reports.
 
-For citation details, please use the repository’s citation file: [CITATION.cff](https://github.com/someparsa/cufsm-octave/blob/main/CITATION.cff), or cite the archived release as: Yazdi, P. (2026). *CUFSM Octave CLI*. Zenodo. [https://doi.org/10.5281/zenodo.20635622](https://doi.org/10.5281/zenodo.20635622)
+For citation details, please use the repository’s citation file: [CITATION.cff](https://github.com/someparsa/cufsm-octave/blob/main/CITATION.cff), or cite the archived release as: Yazdi, P. (2026). *CUFSM Octave CLI-MCP*. Zenodo. [https://doi.org/10.5281/zenodo.20635622](https://doi.org/10.5281/zenodo.20635622)
 
 ## Try the MCP (Beta)
 
